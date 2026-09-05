@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kalender">
+  <rect width="512" height="512" rx="96" fill="#2f6fd0"/>
+  <rect x="80" y="120" width="352" height="312" rx="40" fill="#ffffff"/>
+  <rect x="80" y="120" width="352" height="80" rx="40" fill="#1c4d99"/>
+  <rect x="80" y="176" width="352" height="24" fill="#1c4d99"/>
+  <rect x="146" y="72" width="40" height="96" rx="20" fill="#1c4d99"/>
+  <rect x="326" y="72" width="40" height="96" rx="20" fill="#1c4d99"/>
+  <g fill="#2f6fd0">
+    <rect x="130" y="240" width="56" height="48" rx="12"/>
+    <rect x="228" y="240" width="56" height="48" rx="12"/>
+    <rect x="326" y="240" width="56" height="48" rx="12"/>
+    <rect x="130" y="322" width="56" height="48" rx="12"/>
+    <rect x="228" y="322" width="56" height="48" rx="12" fill="#e5675a"/>
+    <rect x="326" y="322" width="56" height="48" rx="12"/>
+  </g>
+</svg>

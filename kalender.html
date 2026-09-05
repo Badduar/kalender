@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalender</title>
+  <meta name="theme-color" content="#2f6fd0">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/stil.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="kopf">
+    <button class="knopf knopf--rund" id="zurueck" title="Zurück (Pfeil links)" aria-label="Zurück">‹</button>
+    <button class="knopf knopf--rund" id="vor" title="Vor (Pfeil rechts)" aria-label="Vor">›</button>
+    <button class="knopf" id="heute" title="Zu heute springen (H)">Heute</button>
+
+    <strong class="kopf__zeitraum" id="zeitraum">…</strong>
+
+    <span class="kopf__luecke"></span>
+
+    <div class="ansichtswahl" role="group" aria-label="Ansicht">
+      <button type="button" data-ansicht="monat" aria-pressed="true" title="Monat (M)">Monat</button>
+      <button type="button" data-ansicht="woche" aria-pressed="false" title="Woche (W)">Woche</button>
+      <button type="button" data-ansicht="tag" aria-pressed="false" title="Tag (T)">Tag</button>
+    </div>
+
+    <button class="knopf knopf--haupt" id="neu" title="Neuer Termin (N)">+ Termin</button>
+
+    <details class="menue">
+      <summary class="knopf profilknopf" id="profil" title="Profil und Kalenderdateien">
+        <span class="punkt"></span><span>…</span>
+      </summary>
+      <div class="menue__inhalt">
+        <button type="button" class="knopf knopf--leise" id="export-eigene">Eigene Termine als .ics speichern</button>
+        <button type="button" class="knopf knopf--leise" id="export-alle">Alle sichtbaren Termine als .ics speichern</button>
+        <button type="button" class="knopf knopf--leise" id="import">.ics-Datei einlesen …</button>
+        <hr>
+        <button type="button" class="knopf knopf--leise" id="abmelden">Abmelden</button>
+      </div>
+    </details>
+    <input type="file" id="import-datei" accept=".ics,text/calendar" hidden>
+  </header>
+
+  <main class="inhalt" id="inhalt">
+    <p class="lade-hinweis">Termine werden geladen …</p>
+  </main>
+
+</div>
+
+
+<!-- ============================================================
+     Termin anlegen / bearbeiten
+     ============================================================ -->
+<dialog id="termin-dialog">
+  <form id="termin-form">
+    <div class="dialog__kopf">
+      <h2 id="dialog-titel">Neuer Termin</h2>
+      <button type="button" class="knopf knopf--leise knopf--rund" id="dialog-schliessen"
+              aria-label="Schließen">×</button>
+    </div>
+
+    <div class="dialog__koerper">
+      <p class="meldung meldung--fehler" id="dialog-fehler" role="alert" hidden></p>
+      <p class="nur-lesen" id="dialog-nurlesen" hidden></p>
+
+      <label class="feld">
+        <span>Titel</span>
+        <input name="titel" maxlength="200" required autocomplete="off">
+      </label>
+
+      <label class="feld ankreuz">
+        <input type="checkbox" name="ganztags">
+        <span>Ganztägig</span>
+      </label>
+
+      <div class="feld-paar">
+        <label class="feld">
+          <span>Beginn</span>
+          <input type="datetime-local" name="beginn" required>
+        </label>
+        <label class="feld">
+          <span>Ende</span>
+          <input type="datetime-local" name="ende" required>
+        </label>
+      </div>
+
+      <label class="feld">
+        <span>Ort</span>
+        <input name="ort" maxlength="200" autocomplete="off">
+      </label>
+
+      <label class="feld">
+        <span>Kategorie und Farbe</span>
+        <select name="kategorie"></select>
+      </label>
+
+      <div class="feld neue-kategorie" id="neue-kategorie" hidden>
+        <input type="text" id="kategorie-name" maxlength="40" placeholder="Name der Kategorie">
+        <div class="farbwahl" id="kategorie-farbe"></div>
+        <button type="button" class="knopf" id="kategorie-anlegen">Anlegen</button>
+      </div>
+
+      <label class="feld">
+        <span>Wiederholung</span>
+        <select name="haeufigkeit">
+          <option value="KEINE">Einmalig</option>
+          <option value="DAILY">Täglich</option>
+          <option value="WEEKLY">Wöchentlich</option>
+          <option value="MONTHLY">Monatlich</option>
+          <option value="YEARLY">Jährlich</option>
+        </select>
+      </label>
+
+      <div class="wiederholung-details" id="wiederholung" hidden>
+        <div class="feld-paar">
+          <label class="feld">
+            <span>Alle … <span id="intervall-einheit"></span></span>
+            <input type="number" name="intervall" min="1" max="99" value="1">
+          </label>
+          <label class="feld">
+            <span>Endet</span>
+            <select name="ende_art">
+              <option value="nie">nie</option>
+              <option value="anzahl">nach Anzahl</option>
+              <option value="datum">an einem Datum</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="feld" id="feld-wochentage">
+          <div class="wochentage" id="wochentage"></div>
+        </div>
+
+        <label class="feld" id="feld-anzahl" hidden>
+          <span>Anzahl der Termine</span>
+          <input type="number" name="anzahl" min="1" max="999" value="10">
+        </label>
+
+        <label class="feld" id="feld-bis" hidden>
+          <span>Letzter Tag</span>
+          <input type="date" name="bis">
+        </label>
+      </div>
+
+      <div class="feld">
+        <span>Wer sieht diesen Termin?</span>
+        <div class="sichtbarkeit" id="sichtbarkeit"></div>
+        <p class="hinweis" id="sichtbarkeit-hinweis">
+          Wer hier nicht angehakt ist, bekommt den Termin nirgends zu sehen –
+          das setzt die Datenbank durch, nicht nur die Anzeige.
+          Ändern und löschen kannst nur du.
+        </p>
+      </div>
+
+      <label class="feld">
+        <span>Notiz</span>
+        <textarea name="beschreibung" maxlength="5000"></textarea>
+      </label>
+    </div>
+
+    <div class="dialog__fuss">
+      <button type="button" class="knopf knopf--gefahr" id="dialog-loeschen" hidden>Löschen</button>
+      <span class="luecke"></span>
+      <button type="button" class="knopf" id="dialog-abbrechen">Abbrechen</button>
+      <button type="submit" class="knopf knopf--haupt" id="dialog-speichern">Speichern</button>
+    </div>
+  </form>
+</dialog>
+
+
+<!-- ============================================================
+     Rückfrage bei Serienterminen
+     ============================================================ -->
+<dialog id="umfang-dialog">
+  <div class="dialog__kopf"><h2>Serientermin</h2></div>
+  <div class="dialog__koerper">
+    <p id="umfang-text"></p>
+    <p class="hinweis">
+      „Nur dieser Termin“ übernimmt Titel, Ort, Zeit und Notiz.
+      Kategorie, Sichtbarkeit und Wiederholung gelten immer für die ganze Serie.
+    </p>
+  </div>
+  <div class="dialog__fuss">
+    <span class="luecke"></span>
+    <button type="button" class="knopf" data-umfang="">Abbrechen</button>
+    <button type="button" class="knopf" data-umfang="einzeln">Nur dieser Termin</button>
+    <button type="button" class="knopf knopf--haupt" data-umfang="alle">Alle Termine der Serie</button>
+  </div>
+</dialog>
+
+<script type="module" src="js/app.js"></script>
+<script>
+  // Service Worker macht die App installierbar und offline startklar.
+  //
+  // Beim lokalen Entwickeln bleibt er bewusst aus: ein aelterer Worker
+  // haelt sich hartnaeckig und liefert dann alte Programmstaende aus,
+  // waehrend man sich wundert, warum Aenderungen nichts bewirken.
+  // Ein schon vorhandener wird hier gleich mit abgeraeumt.
+  const lokal = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+
+  if ("serviceWorker" in navigator && location.protocol === "https:" && !lokal) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(() => {});
+    });
+  } else if ("serviceWorker" in navigator && lokal) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+      .then(() => caches.keys())
+      .then((namen) => Promise.all(namen.map((n) => caches.delete(n))))
+      .catch(() => {});
+  }
+</script>
+
+</body>
+</html>

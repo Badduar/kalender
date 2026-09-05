@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kalender – Anmelden</title>
+  <meta name="theme-color" content="#2f6fd0">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/symbol.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/stil.css">
+</head>
+<body>
+
+<main class="anmeldeseite">
+  <div class="karte">
+    <div class="karte__kopf">
+      <h1>Kalender</h1>
+      <p>Gemeinsame Termine für alle Profile</p>
+    </div>
+
+    <div class="reiter" role="tablist">
+      <button type="button" role="tab" id="reiter-anmelden" aria-selected="true"
+              aria-controls="form-anmelden">Anmelden</button>
+      <button type="button" role="tab" id="reiter-registrieren" aria-selected="false"
+              aria-controls="form-registrieren">Neues Profil</button>
+    </div>
+
+    <p class="meldung meldung--fehler" id="fehler" role="alert" hidden></p>
+    <p class="meldung meldung--ok" id="erfolg" role="status" hidden></p>
+
+    <!-- Anmelden -->
+    <form id="form-anmelden" role="tabpanel" aria-labelledby="reiter-anmelden">
+      <label class="feld">
+        <span>E-Mail-Adresse</span>
+        <input type="email" name="email" autocomplete="username" required>
+      </label>
+      <label class="feld">
+        <span>Passwort</span>
+        <input type="password" name="passwort" autocomplete="current-password" required>
+      </label>
+      <button class="knopf knopf--haupt" style="width:100%" type="submit">Anmelden</button>
+    </form>
+
+    <!-- Registrieren -->
+    <form id="form-registrieren" role="tabpanel" aria-labelledby="reiter-registrieren" hidden>
+      <label class="feld">
+        <span>Angezeigter Name</span>
+        <input type="text" name="name" maxlength="60" autocomplete="nickname" required>
+      </label>
+      <label class="feld">
+        <span>E-Mail-Adresse</span>
+        <input type="email" name="email" autocomplete="username" required>
+      </label>
+      <label class="feld">
+        <span>Passwort (mindestens 8 Zeichen)</span>
+        <input type="password" name="passwort" minlength="8" autocomplete="new-password" required>
+      </label>
+      <div class="feld">
+        <span>Deine Farbe</span>
+        <div class="farbwahl" id="farbwahl"></div>
+      </div>
+      <label class="feld">
+        <span>Einladungscode</span>
+        <input type="text" name="code" autocomplete="off" spellcheck="false" required>
+      </label>
+      <button class="knopf knopf--haupt" style="width:100%" type="submit">Profil anlegen</button>
+    </form>
+  </div>
+</main>
+
+<script type="module">
+  import { anmelden, registrieren, aktuelleSitzung } from "./js/auth.js";
+  import { FARBPALETTE, STANDARD_FARBE } from "./js/konfig.js";
+
+  const fehler = document.getElementById("fehler");
+  const erfolg = document.getElementById("erfolg");
+  const formAnmelden = document.getElementById("form-anmelden");
+  const formRegistrieren = document.getElementById("form-registrieren");
+  const reiterAnmelden = document.getElementById("reiter-anmelden");
+  const reiterRegistrieren = document.getElementById("reiter-registrieren");
+
+  // Wer schon angemeldet ist, muss sich nicht noch einmal anmelden.
+  if (await aktuelleSitzung()) location.replace("kalender.html");
+
+  function zeige(element, text) {
+    fehler.hidden = true;
+    erfolg.hidden = true;
+    if (!element) return;
+    element.textContent = text;
+    element.hidden = false;
+  }
+
+  function reiterWechsel(aufRegistrieren) {
+    reiterAnmelden.setAttribute("aria-selected", String(!aufRegistrieren));
+    reiterRegistrieren.setAttribute("aria-selected", String(aufRegistrieren));
+    formAnmelden.hidden = aufRegistrieren;
+    formRegistrieren.hidden = !aufRegistrieren;
+    zeige(null);
+  }
+  reiterAnmelden.addEventListener("click", () => reiterWechsel(false));
+  reiterRegistrieren.addEventListener("click", () => reiterWechsel(true));
+
+  // Farbauswahl aufbauen
+  const farbwahl = document.getElementById("farbwahl");
+  FARBPALETTE.forEach((farbe, i) => {
+    const id = `farbe-${i}`;
+    const eingabe = document.createElement("input");
+    eingabe.type = "radio";
+    eingabe.name = "farbe";
+    eingabe.value = farbe;
+    eingabe.id = id;
+    eingabe.checked = i === 0;
+    const beschriftung = document.createElement("label");
+    beschriftung.setAttribute("for", id);
+    beschriftung.style.background = farbe;
+    beschriftung.title = farbe;
+    farbwahl.append(eingabe, beschriftung);
+  });
+
+  function sperre(form, gesperrt, text) {
+    const knopf = form.querySelector("button[type=submit]");
+    knopf.disabled = gesperrt;
+    if (text) knopf.dataset.original ??= knopf.textContent;
+    knopf.textContent = gesperrt ? text : knopf.dataset.original ?? knopf.textContent;
+  }
+
+  formAnmelden.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    zeige(null);
+    sperre(formAnmelden, true, "Anmelden …");
+    const daten = new FormData(formAnmelden);
+    try {
+      await anmelden(daten.get("email"), daten.get("passwort"));
+      location.replace("kalender.html");
+    } catch (ex) {
+      zeige(fehler, ex.message);
+      sperre(formAnmelden, false);
+    }
+  });
+
+  formRegistrieren.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    zeige(null);
+    sperre(formRegistrieren, true, "Wird angelegt …");
+    const daten = new FormData(formRegistrieren);
+    try {
+      await registrieren({
+        email: daten.get("email"),
+        passwort: daten.get("passwort"),
+        name: daten.get("name"),
+        farbe: daten.get("farbe") ?? STANDARD_FARBE,
+        code: daten.get("code"),
+      });
+      // Direkt anmelden, damit niemand die Daten zweimal eintippen muss.
+      await anmelden(daten.get("email"), daten.get("passwort"));
+      location.replace("kalender.html");
+    } catch (ex) {
+      zeige(fehler, ex.message);
+      sperre(formRegistrieren, false);
+    }
+  });
+</script>
+
+</body>
+</html>

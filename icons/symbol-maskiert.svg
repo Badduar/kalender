@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Kalender">
+  <!-- Maskierbares Symbol: Motiv liegt im inneren Kreis (80 % Kantenlaenge),
+       damit Android es beliebig beschneiden kann. -->
+  <rect width="512" height="512" fill="#2f6fd0"/>
+  <rect x="128" y="158" width="256" height="226" rx="30" fill="#ffffff"/>
+  <rect x="128" y="158" width="256" height="58" rx="29" fill="#1c4d99"/>
+  <rect x="128" y="198" width="256" height="18" fill="#1c4d99"/>
+  <rect x="176" y="126" width="30" height="70" rx="15" fill="#1c4d99"/>
+  <rect x="306" y="126" width="30" height="70" rx="15" fill="#1c4d99"/>
+  <g fill="#2f6fd0">
+    <rect x="164" y="244" width="42" height="36" rx="9"/>
+    <rect x="235" y="244" width="42" height="36" rx="9"/>
+    <rect x="306" y="244" width="42" height="36" rx="9"/>
+    <rect x="164" y="304" width="42" height="36" rx="9"/>
+    <rect x="235" y="304" width="42" height="36" rx="9" fill="#e5675a"/>
+    <rect x="306" y="304" width="42" height="36" rx="9"/>
+  </g>
+</svg>

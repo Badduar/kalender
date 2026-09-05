@@ -1,0 +1,11 @@
+# Im Repository stehen Zeilenenden immer als LF. Beim Auschecken unter
+# Windows macht Git daraus CRLF und beim Einchecken wieder LF. Ohne das
+# meldet Git bei jedem Rechnerwechsel saemtliche Zeilen als geaendert.
+* text=auto eol=lf
+
+# Bilder und Schriften nicht anfassen.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff  binary
+*.woff2 binary

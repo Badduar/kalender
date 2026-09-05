@@ -1,0 +1,26 @@
+{
+  "name": "Kalender",
+  "short_name": "Kalender",
+  "description": "Gemeinsamer Kalender mit Profilen und Sichtbarkeit je Termin",
+  "lang": "de",
+  "start_url": "./kalender.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f6f8",
+  "theme_color": "#2f6fd0",
+  "icons": [
+    {
+      "src": "icons/symbol.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/symbol-maskiert.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

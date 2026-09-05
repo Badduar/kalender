@@ -1,0 +1,642 @@
+/* ============================================================
+   Kalender - gemeinsames Stylesheet
+   ============================================================ */
+
+:root {
+  color-scheme: light dark;
+
+  --grund: #f4f6f8;
+  --flaeche: #ffffff;
+  --flaeche-leise: #eef1f4;
+  --rand: #dde2e7;
+  --rand-stark: #c4ccd4;
+  --text: #1b2229;
+  --text-leise: #6a7681;
+  --akzent: #2f6fd0;
+  --akzent-flaeche: #e7f0fd;
+  --auf-akzent: #ffffff;
+  --gefahr: #c0392b;
+  --erfolg: #1e8e4f;
+  --heute: #fff6e0;
+
+  --radius: 10px;
+  --radius-klein: 6px;
+  --schatten: 0 1px 2px rgb(0 0 0 / 6%), 0 8px 24px rgb(0 0 0 / 6%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --grund: #14181d;
+    --flaeche: #1c2229;
+    --flaeche-leise: #232b33;
+    --rand: #2f3841;
+    --rand-stark: #414c58;
+    --text: #e6ebf0;
+    --text-leise: #96a3b0;
+    --akzent: #5b9bf0;
+    --akzent-flaeche: #1e2c42;
+    --auf-akzent: #0d1218;
+    --gefahr: #e5675a;
+    --erfolg: #4cc684;
+    --heute: #33291263;
+    --schatten: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* Muss vor allen display-Regeln gewinnen: sonst zeigt sich ein Element
+   mit hidden-Attribut trotzdem, weil z.B. .feld display:block setzt. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--grund);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1, h2, h3 { margin: 0 0 .6rem; line-height: 1.25; font-weight: 650; }
+h1 { font-size: 1.5rem; }
+h2 { font-size: 1.15rem; }
+
+/* ---------- Bedienelemente ---------- */
+
+.knopf {
+  appearance: none;
+  border: 1px solid var(--rand-stark);
+  background: var(--flaeche);
+  color: var(--text);
+  padding: .5rem .9rem;
+  border-radius: var(--radius-klein);
+  font: inherit;
+  font-weight: 550;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.knopf:hover { background: var(--flaeche-leise); }
+.knopf:disabled { opacity: .5; cursor: not-allowed; }
+
+.knopf--haupt {
+  background: var(--akzent);
+  border-color: var(--akzent);
+  color: var(--auf-akzent);
+}
+.knopf--haupt:hover { filter: brightness(1.08); background: var(--akzent); }
+
+.knopf--gefahr { color: var(--gefahr); border-color: var(--gefahr); }
+.knopf--gefahr:hover { background: color-mix(in srgb, var(--gefahr) 12%, transparent); }
+
+.knopf--leise { border-color: transparent; background: transparent; color: var(--text-leise); }
+.knopf--leise:hover { background: var(--flaeche-leise); color: var(--text); }
+
+.knopf--rund {
+  width: 2.1rem; height: 2.1rem;
+  padding: 0;
+  display: inline-grid; place-items: center;
+  border-radius: 50%;
+  font-size: 1.1rem;
+}
+
+:where(input, select, textarea) {
+  font: inherit;
+  color: var(--text);
+  background: var(--flaeche);
+  border: 1px solid var(--rand-stark);
+  border-radius: var(--radius-klein);
+  padding: .5rem .6rem;
+  width: 100%;
+}
+input[type="checkbox"], input[type="radio"] { width: auto; }
+textarea { resize: vertical; min-height: 4.5rem; }
+
+:where(input, select, textarea, button, a):focus-visible {
+  outline: 2px solid var(--akzent);
+  outline-offset: 1px;
+}
+
+.feld { display: block; margin-bottom: .85rem; }
+.feld > span {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--text-leise);
+  margin-bottom: .25rem;
+}
+.feld-paar { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+
+.meldung {
+  padding: .6rem .75rem;
+  border-radius: var(--radius-klein);
+  margin-bottom: .9rem;
+  font-size: .9rem;
+  border: 1px solid;
+}
+.meldung[hidden] { display: none; }
+.meldung--fehler {
+  color: var(--gefahr);
+  border-color: color-mix(in srgb, var(--gefahr) 45%, transparent);
+  background: color-mix(in srgb, var(--gefahr) 10%, transparent);
+}
+.meldung--ok {
+  color: var(--erfolg);
+  border-color: color-mix(in srgb, var(--erfolg) 45%, transparent);
+  background: color-mix(in srgb, var(--erfolg) 10%, transparent);
+}
+
+/* ---------- Anmeldeseite ---------- */
+
+.anmeldeseite {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.karte {
+  width: min(26rem, 100%);
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  padding: 1.5rem;
+}
+
+.karte__kopf { text-align: center; margin-bottom: 1.2rem; }
+.karte__kopf p { margin: 0; color: var(--text-leise); font-size: .9rem; }
+
+.reiter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .25rem;
+  background: var(--flaeche-leise);
+  border-radius: var(--radius-klein);
+  padding: .25rem;
+  margin-bottom: 1.2rem;
+}
+.reiter button {
+  appearance: none; border: 0; background: transparent;
+  font: inherit; font-weight: 600; color: var(--text-leise);
+  padding: .45rem; border-radius: calc(var(--radius-klein) - 2px);
+  cursor: pointer;
+}
+.reiter button[aria-selected="true"] {
+  background: var(--flaeche);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+
+.farbwahl { display: flex; flex-wrap: wrap; gap: .4rem; }
+.farbwahl input { position: absolute; opacity: 0; pointer-events: none; }
+.farbwahl label {
+  width: 1.75rem; height: 1.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 2px var(--flaeche);
+}
+.farbwahl input:checked + label { border-color: var(--text); }
+.farbwahl input:focus-visible + label { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+/* ---------- Anwendungsgeruest ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.kopf {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  flex-wrap: wrap;
+  padding: .6rem .9rem;
+  background: var(--flaeche);
+  border-bottom: 1px solid var(--rand);
+}
+
+.kopf__zeitraum {
+  font-size: 1.15rem;
+  font-weight: 650;
+  min-width: 11rem;
+}
+
+.kopf__luecke { flex: 1 1 auto; }
+
+.ansichtswahl {
+  display: flex;
+  background: var(--flaeche-leise);
+  border-radius: var(--radius-klein);
+  padding: .2rem;
+  gap: .15rem;
+}
+.ansichtswahl button {
+  appearance: none; border: 0; background: transparent;
+  font: inherit; font-weight: 600; color: var(--text-leise);
+  padding: .35rem .8rem; border-radius: calc(var(--radius-klein) - 2px);
+  cursor: pointer;
+}
+.ansichtswahl button[aria-pressed="true"] {
+  background: var(--flaeche); color: var(--text);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+
+.profilknopf {
+  display: inline-flex; align-items: center; gap: .45rem;
+}
+.punkt {
+  width: .75rem; height: .75rem; border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+/* ---------- Ausklappmenue ---------- */
+
+.menue { position: relative; }
+.menue summary {
+  display: inline-flex;
+  list-style: none;
+  user-select: none;
+}
+.menue summary::-webkit-details-marker { display: none; }
+
+.menue__inhalt {
+  position: absolute;
+  right: 0;
+  top: calc(100% + .35rem);
+  z-index: 20;
+  min-width: 18rem;
+  padding: .35rem;
+  background: var(--flaeche);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  box-shadow: var(--schatten);
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+}
+.menue__inhalt .knopf {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+.menue__inhalt hr {
+  border: 0;
+  border-top: 1px solid var(--rand);
+  margin: .3rem .2rem;
+}
+
+.inhalt {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: .9rem;
+}
+
+.lade-hinweis {
+  text-align: center;
+  color: var(--text-leise);
+  padding: 3rem 1rem;
+}
+
+/* ---------- Monatsansicht ---------- */
+
+.monat { display: flex; flex-direction: column; min-height: 100%; }
+
+.monat__wochentage {
+  display: grid;
+  /* minmax(0, 1fr) statt 1fr: sonst zieht ein zu breites Termin-Plaettchen
+     seine Spalte auf und das ganze Raster wird ungleichmaessig. */
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  font-size: .78rem;
+  font-weight: 650;
+  color: var(--text-leise);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: .35rem;
+}
+.monat__wochentage span { padding: .2rem .4rem; }
+
+.monat__raster {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--rand);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.tag {
+  background: var(--flaeche);
+  min-width: 0;
+  min-height: 6.5rem;
+  padding: .3rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  cursor: pointer;
+}
+.tag:hover { background: var(--flaeche-leise); }
+.tag--fremd { background: var(--grund); }
+.tag--fremd .tag__zahl { color: var(--text-leise); }
+.tag--heute { background: var(--heute); }
+
+.tag__zahl {
+  font-size: .82rem;
+  font-weight: 650;
+  align-self: flex-start;
+  padding: .1rem .35rem;
+  border-radius: 999px;
+}
+.tag--heute .tag__zahl { background: var(--akzent); color: var(--auf-akzent); }
+
+.tag__mehr {
+  font-size: .72rem;
+  color: var(--text-leise);
+  padding-left: .2rem;
+}
+
+/* ---------- Termin-Plaettchen ---------- */
+
+.termin {
+  --farbe: var(--akzent);
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  font-size: .78rem;
+  line-height: 1.3;
+  padding: .12rem .3rem;
+  border-radius: 4px;
+  border-left: 3px solid var(--farbe);
+  background: color-mix(in srgb, var(--farbe) 14%, var(--flaeche));
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  border-top: 0; border-right: 0; border-bottom: 0;
+  width: 100%;
+  font-family: inherit;
+  overflow: hidden;
+}
+.termin:hover { background: color-mix(in srgb, var(--farbe) 26%, var(--flaeche)); }
+.termin__zeit { color: var(--text-leise); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+/* min-width: 0 hebt die Vorgabe "so breit wie der Inhalt" auf -
+   erst dadurch greift das Abschneiden mit Auslassungspunkten. */
+.termin__titel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.termin--ganztags {
+  background: var(--farbe);
+  color: #fff;
+  border-left-color: transparent;
+}
+.termin--ganztags .termin__zeit { color: inherit; opacity: .8; }
+.termin--fremd { border-left-style: dotted; }
+
+/* ---------- Wochen- und Tagesansicht ---------- */
+
+.zeitraster {
+  --stundenhoehe: 3rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+/* Kopfzeile und Ganztags-Leiste als ein Block, der beim Scrollen
+   oben stehen bleibt - sonst rutschen die ganztaegigen Termine
+   zusammen mit den fruehen Stunden aus dem Bild. */
+.zeitraster__oben {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--grund);
+  padding-top: .1rem;
+}
+
+.zeitraster__kopf {
+  display: grid;
+  gap: 1px;
+  background: var(--grund);
+  padding-bottom: .3rem;
+}
+.zeitraster__kopftag {
+  text-align: center;
+  padding: .3rem;
+  font-size: .8rem;
+  color: var(--text-leise);
+  border-radius: var(--radius-klein);
+  cursor: pointer;
+}
+.zeitraster__kopftag b { display: block; font-size: 1.15rem; color: var(--text); }
+.zeitraster__kopftag--heute { background: var(--akzent-flaeche); }
+.zeitraster__kopftag--heute b { color: var(--akzent); }
+
+.zeitraster__ganztags {
+  display: grid;
+  gap: 1px;
+  background: var(--rand);
+  border: 1px solid var(--rand);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border-bottom: 0;
+}
+.zeitraster__ganztags > div {
+  background: var(--flaeche);
+  padding: .2rem;
+  min-height: 1.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+}
+
+.zeitraster__koerper {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  background: var(--rand);
+  border: 1px solid var(--rand);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+}
+
+.zeitraster__stunden {
+  background: var(--flaeche);
+  font-size: .72rem;
+  color: var(--text-leise);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.zeitraster__stunden div {
+  height: var(--stundenhoehe);
+  padding-right: .35rem;
+  transform: translateY(-.55em);
+}
+
+.zeitraster__spalte {
+  position: relative;
+  height: calc(24 * var(--stundenhoehe));
+  background-color: var(--flaeche);
+  /* Stundenlinien als Hintergrund - spart 24 Elemente je Spalte. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--rand) 0, var(--rand) 1px,
+    transparent 1px, transparent var(--stundenhoehe)
+  );
+  cursor: pointer;
+}
+.zeitraster__spalte--heute { background-color: var(--heute); }
+
+.zeitraster__jetzt {
+  position: absolute;
+  left: 0; right: 0;
+  height: 0;
+  border-top: 2px solid var(--gefahr);
+  z-index: 3;
+  pointer-events: none;
+}
+.zeitraster__jetzt::before {
+  content: "";
+  position: absolute;
+  left: -1px; top: -4px;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--gefahr);
+}
+
+.block {
+  --farbe: var(--akzent);
+  position: absolute;
+  overflow: hidden;
+  padding: .15rem .3rem;
+  border-radius: 5px;
+  border-left: 3px solid var(--farbe);
+  background: color-mix(in srgb, var(--farbe) 18%, var(--flaeche));
+  color: var(--text);
+  font-size: .76rem;
+  line-height: 1.25;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  border-top: 0; border-right: 0; border-bottom: 0;
+}
+.block:hover { background: color-mix(in srgb, var(--farbe) 30%, var(--flaeche)); z-index: 4; }
+.block b { font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.block small { color: var(--text-leise); font-variant-numeric: tabular-nums; }
+.block--fremd { border-left-style: dotted; }
+
+/* ---------- Dialog ---------- */
+
+dialog {
+  border: 1px solid var(--rand);
+  border-radius: var(--radius);
+  background: var(--flaeche);
+  color: var(--text);
+  padding: 0;
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 3rem);
+  box-shadow: var(--schatten);
+}
+dialog::backdrop { background: rgb(0 0 0 / 45%); }
+
+.dialog__kopf {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .9rem 1.1rem;
+  border-bottom: 1px solid var(--rand);
+}
+.dialog__kopf h2 { margin: 0; flex: 1 1 auto; }
+
+.dialog__koerper { padding: 1.1rem; overflow: auto; }
+
+.dialog__fuss {
+  display: flex; gap: .5rem; align-items: center;
+  padding: .8rem 1.1rem;
+  border-top: 1px solid var(--rand);
+  background: var(--flaeche-leise);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.dialog__fuss .luecke { flex: 1 1 auto; }
+
+.sichtbarkeit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.sichtbarkeit label {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .35rem .65rem;
+  border: 1px solid var(--rand-stark);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: .88rem;
+  user-select: none;
+}
+.sichtbarkeit label:has(input:checked) {
+  background: var(--akzent-flaeche);
+  border-color: var(--akzent);
+  color: var(--akzent);
+  font-weight: 600;
+}
+.sichtbarkeit label:has(input:disabled) { opacity: .65; cursor: default; }
+
+.hinweis { font-size: .8rem; color: var(--text-leise); margin: .35rem 0 0; }
+
+.feld.ankreuz { display: flex; align-items: center; gap: .5rem; }
+.feld.ankreuz > span {
+  margin: 0;
+  font-size: .95rem;
+  font-weight: 500;
+  color: var(--text);
+  text-transform: none;
+}
+
+.neue-kategorie {
+  display: grid;
+  gap: .5rem;
+  padding: .65rem;
+  border: 1px dashed var(--rand-stark);
+  border-radius: var(--radius-klein);
+}
+.neue-kategorie[hidden] { display: none; }
+
+.nur-lesen {
+  font-size: .85rem;
+  color: var(--text-leise);
+  background: var(--flaeche-leise);
+  border-radius: var(--radius-klein);
+  padding: .5rem .7rem;
+  margin-bottom: .9rem;
+}
+
+.wiederholung-details[hidden] { display: none; }
+
+.wochentage { display: flex; flex-wrap: wrap; gap: .3rem; }
+.wochentage input { position: absolute; opacity: 0; pointer-events: none; }
+.wochentage label {
+  min-width: 2.2rem; text-align: center;
+  padding: .3rem .4rem;
+  border: 1px solid var(--rand-stark);
+  border-radius: var(--radius-klein);
+  cursor: pointer;
+  font-size: .85rem;
+}
+.wochentage input:checked + label {
+  background: var(--akzent); border-color: var(--akzent); color: var(--auf-akzent);
+}
+.wochentage input:focus-visible + label { outline: 2px solid var(--akzent); outline-offset: 1px; }
+
+/* ---------- Kleine Bildschirme ---------- */
+
+@media (max-width: 640px) {
+  .kopf { padding: .5rem .6rem; }
+  .kopf__zeitraum { font-size: 1rem; min-width: 0; flex: 1 1 100%; order: -1; }
+  .inhalt { padding: .5rem; }
+  .tag { min-height: 4.5rem; padding: .2rem; }
+  .ansichtswahl button { padding: .35rem .6rem; }
+  .feld-paar { grid-template-columns: 1fr; }
+
+  /* In der Monatsansicht ist die Spalte zu schmal fuer Uhrzeit UND Titel.
+     Der Titel sagt mehr - die Uhrzeit steht in Woche und Tag. */
+  .monat .termin__zeit { display: none; }
+  .monat .termin { font-size: .72rem; padding: .1rem .2rem; }
+}
