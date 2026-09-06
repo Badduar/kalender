@@ -192,28 +192,45 @@ async function sichtbarkeitSetzen(terminId, profilIds) {
 // ------------------------------------------------------------
 
 export async function vorkommenLoeschen(terminId, originalDatum) {
-  const { error } = await db.from("serien_ausnahme").upsert(
-    { termin_id: terminId, original_datum: originalDatum, geloescht: true,
-      beginn: null, ende: null, titel: null, ort: null, beschreibung: null },
-    { onConflict: "termin_id,original_datum" },
-  );
-  if (error) throw error;
+  await ausnahmeSetzen(terminId, originalDatum, {
+    geloescht: true,
+    beginn: null, ende: null, titel: null, ort: null, beschreibung: null,
+  });
 }
 
 export async function vorkommenAendern(terminId, originalDatum, felder) {
-  const { error } = await db.from("serien_ausnahme").upsert(
-    {
-      termin_id: terminId,
-      original_datum: originalDatum,
-      geloescht: false,
-      beginn: felder.beginn.toISOString(),
-      ende: felder.ende.toISOString(),
-      titel: felder.titel?.trim() || null,
-      ort: felder.ort?.trim() || null,
-      beschreibung: felder.beschreibung?.trim() || null,
-    },
-    { onConflict: "termin_id,original_datum" },
-  );
+  await ausnahmeSetzen(terminId, originalDatum, {
+    geloescht: false,
+    beginn: felder.beginn.toISOString(),
+    ende: felder.ende.toISOString(),
+    titel: felder.titel?.trim() || null,
+    ort: felder.ort?.trim() || null,
+    beschreibung: felder.beschreibung?.trim() || null,
+  });
+}
+
+// Ersetzt die Ausnahme zu einem Vorkommen.
+//
+// Bewusst kein upsert: "insert ... on conflict do update" verlangt in
+// Postgres weitergehende Leserechte auf die Tabelle, und die sind hier
+// entzogen, damit die Inhalte verdeckter Termine verborgen bleiben.
+// Erst loeschen, dann einfuegen kommt mit den knappen Rechten aus.
+//
+// Beide Felder zusammen sind eindeutig, und geschrieben wird immer der
+// vollstaendige Satz - ein Zwischenzustand kann also nichts verfaelschen.
+async function ausnahmeSetzen(terminId, originalDatum, felder) {
+  const { error: wegFehler } = await db
+    .from("serien_ausnahme")
+    .delete()
+    .eq("termin_id", terminId)
+    .eq("original_datum", originalDatum);
+  if (wegFehler) throw wegFehler;
+
+  const { error } = await db.from("serien_ausnahme").insert({
+    termin_id: terminId,
+    original_datum: originalDatum,
+    ...felder,
+  });
   if (error) throw error;
 }
 
