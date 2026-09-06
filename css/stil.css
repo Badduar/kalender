@@ -229,6 +229,11 @@ textarea { resize: vertical; min-height: 4.5rem; }
   padding: .6rem .9rem;
   background: var(--flaeche);
   border-bottom: 1px solid var(--rand);
+  /* Bezugspunkt fuer das Ausklappmenue: es haengt an der Kopfzeile,
+     nicht am Profilknopf. Bricht die Kopfzeile auf schmalen Geraeten
+     um, wandert der Knopf nach links - das Menue soll trotzdem
+     rechts im Bild bleiben. */
+  position: relative;
 }
 
 .kopf__zeitraum {
@@ -267,7 +272,8 @@ textarea { resize: vertical; min-height: 4.5rem; }
 
 /* ---------- Ausklappmenue ---------- */
 
-.menue { position: relative; }
+/* Bewusst NICHT position: relative - sonst haengt das Menue am Knopf.
+   Siehe Kommentar bei .kopf. */
 .menue summary {
   display: inline-flex;
   list-style: none;
@@ -277,28 +283,42 @@ textarea { resize: vertical; min-height: 4.5rem; }
 
 .menue__inhalt {
   position: absolute;
-  right: 0;
-  top: calc(100% + .35rem);
+  right: .6rem;
+  top: calc(100% + .3rem);
   z-index: 20;
-  min-width: 18rem;
-  padding: .35rem;
+
+  /* Breite gedeckelt, damit es auf schmalen Geraeten nicht
+     seitlich herauslaeuft. */
+  width: min(19rem, calc(100vw - 1.2rem));
+
+  /* Hoehe gedeckelt und notfalls scrollbar. Der Abzug deckt auch eine
+     umgebrochene Kopfzeile ab - vorher ragte das Menue unten aus dem
+     Bild und "Abmelden" war nicht erreichbar. */
+  max-height: min(32rem, calc(100dvh - 9rem));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  padding: .3rem;
   background: var(--flaeche);
   border: 1px solid var(--rand);
   border-radius: var(--radius);
   box-shadow: var(--schatten);
   display: flex;
   flex-direction: column;
-  gap: .1rem;
+  gap: .05rem;
 }
 .menue__inhalt .knopf {
   width: 100%;
   text-align: left;
   white-space: normal;
+  padding: .38rem .7rem;
+  font-size: .88rem;
+  font-weight: 500;
 }
 .menue__inhalt hr {
   border: 0;
   border-top: 1px solid var(--rand);
-  margin: .3rem .2rem;
+  margin: .25rem .2rem;
 }
 
 .inhalt {
@@ -663,8 +683,8 @@ dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .sichtbarkeit label:has(input:disabled) { opacity: .65; cursor: default; }
 
 .menue__titel {
-  margin: .5rem .9rem .2rem;
-  font-size: .72rem;
+  margin: .45rem .7rem .15rem;
+  font-size: .68rem;
   font-weight: 700;
   letter-spacing: .05em;
   text-transform: uppercase;
@@ -672,18 +692,18 @@ dialog::backdrop { background: rgb(0 0 0 / 45%); }
 }
 
 .menue__hinweis {
-  margin: 0 .9rem .4rem;
-  font-size: .76rem;
-  line-height: 1.4;
+  margin: 0 .7rem .3rem;
+  font-size: .74rem;
+  line-height: 1.35;
   color: var(--text-leise);
 }
 
 .menue__schalter {
   display: flex;
   align-items: center;
-  gap: .55rem;
-  padding: .5rem .9rem;
-  font-size: .9rem;
+  gap: .5rem;
+  padding: .38rem .7rem;
+  font-size: .88rem;
   cursor: pointer;
   user-select: none;
   border-radius: var(--radius-klein);
