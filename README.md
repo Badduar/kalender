@@ -116,7 +116,8 @@ Entwickeln alte Programmstände serviert.
 node "C:\Users\Daniel\Documents\Claude Arbeitsordner\kalender\pruefungen.mjs"
 ```
 
-83 Prüfungen zu Zeitrechnung, Serienterminen, Feiertagen und Schulferien — ohne Netz und ohne Datenbank.
+82 Prüfungen zu Zeitrechnung, Serienterminen, Feiertagen, Schulferien und zum
+Gleichlauf von Anzeige und Erinnerungsversand — ohne Netz und ohne Datenbank.
 Sie decken vor allem die Zeitumstellung ab (der 28.03.2027 hat nur 23 Stunden,
 und ein wöchentlicher 9-Uhr-Termin muss trotzdem um 9 Uhr bleiben). Sinnvoll ist
 ein zweiter Durchlauf mit fremder Zeitzone — das Ergebnis muss gleich sein:
