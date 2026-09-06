@@ -9,50 +9,66 @@ festgelegt, wer ihn sehen darf. Ansichten: Monat, Woche, Tag.
 
 ---
 
-## ✅ Erledigt: offene Registrierung abgeschaltet
-
-Neue Profile entstehen ausschließlich über den Einladungscode. Nachgemessen
-am 05.09.2026:
-
-| Weg | Ergebnis |
-|---|---|
-| Direkt am Auth-Server, ohne Code | 400 — abgewiesen, kein Konto angelegt |
-| Einladungscode falsch | 403 — abgewiesen |
-| Einladungscode gültig | 200 — Konto und Profil angelegt |
-
-> Falls die Registrierung eines Tages grundlos scheitert: zuerst prüfen, ob im
-> Dashboard unter **Authentication → Sign In / Providers → Email** versehentlich
-> etwas verstellt wurde. Die Edge Function selbst braucht die offene
-> Registrierung *nicht* — sie legt Konten mit Dienstrechten an.
+**Läuft unter: https://badduar.github.io/kalender/**
 
 ---
 
-## ⚠️ Noch offen — bitte selbst erledigen
+## Wer hereinkommt
 
-### Veröffentlichen auf GitHub Pages
+Der Zugang hängt **nicht** an einer Einstellung im Supabase-Dashboard, sondern
+an einem Kennzeichen in der Datenbank: `profil.freigeschaltet`. Gesetzt wird es
+allein von der Edge Function `registrieren`, und nur nach gültigem
+Einladungscode.
+
+Wer sich auf anderem Weg ein Konto verschafft, kann sich zwar anmelden, aber:
+
+| | freigeschaltet | nicht freigeschaltet |
+|---|---|---|
+| Eigenes Profil sehen | ✅ | ✅ (damit die App es erklären kann) |
+| Andere Profile sehen | ✅ | ❌ |
+| Termine sehen | nur freigegebene | ❌ keine |
+| Kategorien sehen | ✅ | ❌ |
+| Irgendetwas anlegen | ✅ | ❌ |
+| Sich selbst freischalten | — | ❌ (403) |
+
+Die App zeigt solchen Konten eine Erklärung statt eines leeren Kalenders.
+
+> **Warum nicht einfach der Dashboard-Schalter?** Weil sich von außen nicht
+> zuverlässig prüfen lässt, ob er steht — ein versehentlich umgelegter Haken
+> wäre ein stiller Totalausfall. Der Schalter (*Authentication → Sign In /
+> Providers*, „Allow new users to sign up") ist weiterhin sinnvoll, aber nur
+> noch die zweite Verteidigungslinie.
+>
+> Aktuellen Stand abfragen — im Browser auf der Kalenderseite (F12 → Konsole):
+> ```js
+> (await (await fetch("https://caflqjhsapbqvmuvffir.supabase.co/auth/v1/settings?apikey=sb_publishable_k4SvIx3K3j0tBzgi8bNAvQ_smBZvw9o")).json()).disable_signup
+> ```
+> `true` = Selbstregistrierung gesperrt, `false` = offen.
+
+---
+
+## Änderungen veröffentlichen
+
+Das Repository ist bereits eingerichtet (`Badduar/kalender`, GitHub Pages aus
+`main` / `/ (root)`). Nach einer Änderung genügt:
 
 ```bash
 cd "C:\Users\Daniel\Documents\Claude Arbeitsordner\kalender"
-git init
 git add .
-git commit -m "Kalender"
-git branch -M main
-git remote add origin https://github.com/DEIN-NAME/kalender.git
-git push -u origin main
+git commit -m "Kurze Beschreibung der Änderung"
+git push
 ```
 
-Danach im Repository unter **Settings → Pages** als Quelle `main` / `/ (root)`
-wählen. Die App liegt dann unter `https://DEIN-NAME.github.io/kalender/`.
+GitHub braucht danach ein bis zwei Minuten, bis die Seite neu gebaut ist.
 
-Zum Schluss im Supabase-Dashboard unter **Authentication → URL Configuration**
-diese Adresse als **Site URL** eintragen.
+> Das Repository ist öffentlich — bei kostenlosen Konten verlangt GitHub Pages
+> das. Der Schlüssel in `js/konfig.js` ist der dafür vorgesehene öffentliche
+> Schlüssel; was damit sichtbar wird, entscheidet allein die Zugriffskontrolle
+> in der Datenbank. Der `service_role`-Schlüssel steht nirgends im Projekt und
+> darf dort auch nie hinein. **Einladungscodes gehören ebenfalls nicht in
+> Dateien** — sie stehen nur in der Datenbank.
 
-> Das Repository darf öffentlich sein. Der Schlüssel in `js/konfig.js` ist der
-> dafür vorgesehene öffentliche Schlüssel; was damit sichtbar wird, entscheidet
-> allein die Zugriffskontrolle in der Datenbank. Der `service_role`-Schlüssel
-> steht nirgends im Projekt und darf dort auch nie hinein.
-
-### Einladungscode weitergeben
+## Einladungscode weitergeben
 
 **Codes stehen bewusst nirgends im Quelltext** — dieses Repository ist
 öffentlich, ein Code darin wäre für jeden lesbar und damit wertlos. Sie werden
@@ -119,7 +135,7 @@ Antwort schlicht nicht auf.
 | Wer | darf |
 |---|---|
 | Ersteller | sehen, ändern, löschen, Freigaben setzen |
-| Freigeschaltete | nur sehen |
+| Für den Termin Freigegebene | nur sehen |
 | Alle anderen | gar nichts — der Termin existiert für sie nicht |
 
 Zwei Feinheiten:
@@ -127,8 +143,9 @@ Zwei Feinheiten:
 - Wer einen fremden Termin sehen darf, erfährt **nicht**, wer ihn sonst noch
   sieht. Der Dialog zeigt deshalb keine geratene Häkchenliste, sondern nur die
   eigene Freigabe.
-- Namen und Farben aller Profile sind für Angemeldete lesbar — sonst ließe sich
-  die Freigabeliste nicht bedienen. E-Mail-Adressen sind es nicht.
+- Namen und Farben der Profile sind für **freigeschaltete** Angemeldete lesbar —
+  sonst ließe sich die Freigabeliste nicht bedienen. E-Mail-Adressen sind es
+  nicht, und für nicht freigeschaltete Konten ist auch die Namensliste zu.
 
 Die Tabelle `einladungscode` hat bewusst **keine** Zugriffsregel und ist damit
 für alle Clients gesperrt; nur die Edge Function kommt heran.
