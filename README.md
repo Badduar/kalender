@@ -1,7 +1,7 @@
 # Kalender
 
 Gemeinsamer Kalender für mehrere Profile. Bei jedem Termin wird einzeln
-festgelegt, wer ihn sehen darf. Ansichten: Monat, Woche, Tag.
+festgelegt, wer ihn sehen darf. Ansichten: Monat, Woche, Tag und Übersicht.
 
 - **Oberfläche:** reines HTML/CSS/JavaScript, kein Build-Schritt
 - **Server:** Supabase (Postgres + Anmeldung + Live-Synchronisierung)
@@ -219,6 +219,8 @@ js/
   ansicht_monat.js  Monatsraster
   ansicht_woche.js  Zeitraster (Woche und Tag)
   ansicht_tag.js    Tagesansicht
+  ansicht_uebersicht.js  Tagesliste ohne Raster
+  suche.js          Termine suchen
   termin_dialog.js  Anlegen und Bearbeiten
   feiertage.js      Feiertage (gerechnet) und Schulferien (Tabelle)
   push.js           Gerät für Erinnerungen an- und abmelden
@@ -237,8 +239,25 @@ supabase/
 |---|---|
 | ← / → | vor- und zurückblättern |
 | `M` / `W` / `T` | Monat, Woche, Tag |
+| `Ü` | Übersicht (springt auf heute) |
 | `H` | zu heute |
 | `N` | neuer Termin |
+| `/` | Termine suchen |
+
+**Übersicht** zeigt die Termine eines Tages als schlichte Liste statt im Raster —
+mit Uhrzeit, Ort, Notiz und eingestellter Erinnerung. Der Knopf springt immer auf
+heute; mit ← → blättert man von dort weiter.
+
+**Suchen** (Menü oder `/`) durchsucht Titel, Ort und Notiz. Mehrere Wörter müssen
+alle vorkommen, die Reihenfolge ist egal. Gesucht wird zwei Jahre zurück und drei
+Jahre voraus; bei Serien werden nur die nächsten und letzten drei Vorkommen
+gezeigt, sonst bestünde die Liste aus hundertmal demselben Termin.
+
+> **Verdeckte Termine sind von der Suche ausgenommen.** Wer sein Profil auf
+> „andere sehen nur belegt" gestellt hat, taucht in fremden Suchergebnissen
+> nicht auf — auch nicht unter „belegt". Sonst ließe sich über einen Treffer
+> erschließen, worum es geht, oder man könnte sie wenigstens aufzählen. Im
+> Kalender bleiben sie als „Belegt" sichtbar, nur eben nicht auffindbar.
 
 Das Menü hinter dem eigenen Namen (oben rechts) enthält: Anzeige (Feiertage,
 Schulferien), „Andere sehen nur belegt", Import/Export und — unter *App* —

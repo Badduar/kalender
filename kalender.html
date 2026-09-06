@@ -26,6 +26,7 @@
       <button type="button" data-ansicht="monat" aria-pressed="true" title="Monat (M)">Monat</button>
       <button type="button" data-ansicht="woche" aria-pressed="false" title="Woche (W)">Woche</button>
       <button type="button" data-ansicht="tag" aria-pressed="false" title="Tag (T)">Tag</button>
+      <button type="button" data-ansicht="uebersicht" aria-pressed="false" title="Übersicht der Termine des Tages (Ü)">Übersicht</button>
     </div>
 
     <button class="knopf knopf--haupt" id="neu" title="Neuer Termin (N)">+ Termin</button>
@@ -54,6 +55,10 @@
         <p class="menue__hinweis">
           Gilt für alle deine Termine: andere sehen dann nur Uhrzeit und Farbe.
         </p>
+
+        <hr>
+        <p class="menue__titel">Suchen</p>
+        <button type="button" class="knopf knopf--leise" id="suche-oeffnen">Termine suchen …</button>
 
         <hr>
         <p class="menue__titel">Erinnerungen</p>
@@ -214,6 +219,27 @@
 <!-- ============================================================
      Rückfrage bei Serienterminen
      ============================================================ -->
+<dialog id="suche-dialog">
+  <div class="dialog__kopf">
+    <h2>Termine suchen</h2>
+    <button type="button" class="knopf knopf--leise knopf--rund" id="suche-schliessen"
+            title="Schließen" aria-label="Schließen">×</button>
+  </div>
+  <div class="dialog__koerper">
+    <label class="feld">
+      <span>Suchbegriff</span>
+      <input type="search" id="suche-feld" autocomplete="off" spellcheck="false"
+             placeholder="Titel, Ort oder Notiz">
+    </label>
+    <p class="hinweis" id="suche-stand"></p>
+    <div class="suche__ergebnis" id="suche-ergebnis"></div>
+    <p class="hinweis">
+      Gefunden wird nur, was du auch vollständig sehen darfst. Termine von
+      Profilen, die nur „belegt“ zeigen, bleiben außen vor.
+    </p>
+  </div>
+</dialog>
+
 <dialog id="umfang-dialog">
   <div class="dialog__kopf"><h2>Serientermin</h2></div>
   <div class="dialog__koerper">

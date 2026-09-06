@@ -14,6 +14,8 @@ import {
 import { zeichneMonat } from "./ansicht_monat.js";
 import { zeichneWoche } from "./ansicht_woche.js";
 import { zeichneTag } from "./ansicht_tag.js";
+import { zeichneUebersicht } from "./ansicht_uebersicht.js";
+import { sucheAufsetzen } from "./suche.js";
 import { dialogAufsetzen } from "./termin_dialog.js";
 import { exportieren, alsDateiHerunterladen, lesen } from "./ics.js";
 import { zeigeFeiertage, zeigeFerien } from "./feiertage.js";
@@ -22,7 +24,7 @@ import {
   anmelden as pushAnmelden, abmelden as pushAbmelden,
 } from "./push.js";
 
-const ANSICHTEN = ["monat", "woche", "tag"];
+const ANSICHTEN = ["monat", "woche", "tag", "uebersicht"];
 
 const zustand = {
   ansicht: "monat",
@@ -36,6 +38,7 @@ const kontext = {
   aufTerminKlick: (v) => dialog.vorhandenerTermin(v),
   aufTagKlick: (schluessel, minuten) => dialog.neuerTermin(schluessel, minuten),
   aufTagWechsel: (schluessel) => setzeZustand("tag", schluessel),
+  aufUebersicht: (schluessel) => setzeZustand("uebersicht", schluessel),
   nachAenderung: () => neuZeichnen(),
 };
 
@@ -81,6 +84,7 @@ function zeitraumText() {
   const { jahr, monat } = schluesselTeile(zustand.anker);
   if (zustand.ansicht === "monat") return `${MONATE[monat - 1]} ${jahr}`;
   if (zustand.ansicht === "tag") return datumLang(zustand.anker);
+  if (zustand.ansicht === "uebersicht") return datumLang(zustand.anker);
 
   const tage = wochenRaster(zustand.anker);
   return `${datumKurz(tage[0])} – ${datumKurz(tage[6])}`;
@@ -117,6 +121,7 @@ async function neuZeichnen() {
 
     if (zustand.ansicht === "monat") zeichneMonat(inhalt, vorkommen, zustand.anker, kontext);
     else if (zustand.ansicht === "woche") zeichneWoche(inhalt, vorkommen, zustand.anker, kontext);
+    else if (zustand.ansicht === "uebersicht") zeichneUebersicht(inhalt, vorkommen, zustand.anker, kontext);
     else zeichneTag(inhalt, vorkommen, zustand.anker, kontext);
   } catch (ex) {
     if (meine !== laufendeAnfrage) return;
@@ -291,13 +296,20 @@ async function starten() {
   profilKnopf.querySelector("span:last-child").textContent = kontext.eigenesProfil.name;
 
   dialog = dialogAufsetzen(kontext);
+  const suche = sucheAufsetzen(kontext);
+  document.getElementById("suche-oeffnen").addEventListener("click", () => suche.oeffnen());
 
   // Navigation
   document.getElementById("zurueck").addEventListener("click", () => blaettern(-1));
   document.getElementById("vor").addEventListener("click", () => blaettern(1));
   document.getElementById("heute").addEventListener("click", () => setzeZustand(null, heuteSchluessel()));
   for (const knopf of document.querySelectorAll("[data-ansicht]")) {
-    knopf.addEventListener("click", () => setzeZustand(knopf.dataset.ansicht, null));
+    knopf.addEventListener("click", () => {
+      // Die Übersicht ist zum Nachsehen "was ist heute" gedacht und
+      // springt deshalb immer auf den heutigen Tag. Blättern geht danach.
+      const anker = knopf.dataset.ansicht === "uebersicht" ? heuteSchluessel() : null;
+      setzeZustand(knopf.dataset.ansicht, anker);
+    });
   }
   document.getElementById("neu").addEventListener("click", () => {
     dialog.neuerTermin(zustand.ansicht === "monat" ? heuteSchluessel() : zustand.anker, null);
@@ -409,7 +421,7 @@ async function starten() {
     location.replace("index.html");
   });
 
-  // Tastatur: Pfeile blaettern, M/W/T wechseln die Ansicht
+  // Tastatur: Pfeile blaettern, M/W/T/Ü wechseln die Ansicht
   document.addEventListener("keydown", (e) => {
     // Tastenkombinationen gehoeren dem Browser, nicht uns.
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -426,7 +438,9 @@ async function starten() {
     else if (e.key.toLowerCase() === "w") setzeZustand("woche", null);
     else if (e.key.toLowerCase() === "t") setzeZustand("tag", null);
     else if (e.key.toLowerCase() === "h") setzeZustand(null, heuteSchluessel());
+    else if (e.key.toLowerCase() === "ü") setzeZustand("uebersicht", heuteSchluessel());
     else if (e.key === "n") dialog.neuerTermin(zustand.anker, null);
+    else if (e.key === "/") { e.preventDefault(); suche.oeffnen(); }
   });
 
   window.addEventListener("hashchange", () => { ausAdresse(); neuZeichnen(); });
