@@ -211,6 +211,57 @@ pruefe("Ferienzeitraeume ueberschneiden sich nicht", ueberschneidung, null);
 pruefe("jeder Zeitraum beginnt vor seinem Ende",
   SCHULFERIEN.filter((z) => z.von > z.bis).length, 0);
 
+console.log("\n--- Versand rechnet wie die Anzeige ---");
+// Die Edge Function kann die Module der App nicht laden (der
+// Edge-Runtime laesst keine Fernimporte zu), sie bekommt Kopien.
+// Hier wird geprueft, dass beide Fassungen gleich rechnen - sonst
+// wuerden Erinnerungen zu anderen Zeiten verschickt als angezeigt.
+const versand = await import("./supabase/funktionen/erinnerungen/serie.js");
+
+const faelle = [
+  ["FREQ=DAILY", "2026-01-05"],
+  ["FREQ=DAILY;INTERVAL=3;COUNT=7", "2026-01-05"],
+  ["FREQ=WEEKLY", "2026-03-24"],
+  ["FREQ=WEEKLY;BYDAY=MO,MI,FR", "2026-09-07"],
+  ["FREQ=WEEKLY;BYDAY=SA,SU;INTERVAL=2", "2026-10-24"],
+  ["FREQ=WEEKLY;UNTIL=20261231", "2026-06-01"],
+  ["FREQ=MONTHLY", "2026-01-31"],
+  ["FREQ=MONTHLY;BYMONTHDAY=15;INTERVAL=2", "2026-02-15"],
+  ["FREQ=YEARLY;COUNT=4", "2026-02-29"],
+  ["FREQ=YEARLY", "2026-12-25"],
+];
+
+let abweichung = null;
+for (const [regel, start] of faelle) {
+  for (const [von, bis] of [
+    ["2026-01-01", "2026-12-31"],
+    ["2026-03-25", "2026-04-02"],   // Sommerzeit-Umstellung
+    ["2026-10-22", "2026-11-02"],   // Winterzeit-Umstellung
+    ["2027-01-01", "2029-12-31"],
+  ]) {
+    const a = JSON.stringify(serienTage(start, regel, von, bis));
+    const b = JSON.stringify(versand.serienTage(start, regel, von, bis));
+    if (a !== b) { abweichung = `${regel} @ ${start} [${von}..${bis}]`; break; }
+
+    const termin = {
+      titel: "X", ganztags: false,
+      beginn: vonWanduhr(...start.split("-").map(Number), 9, 30).toISOString(),
+      ende: vonWanduhr(...start.split("-").map(Number), 10, 45).toISOString(),
+      serie_regel: regel,
+      ausnahmen: [{ original_datum: start, geloescht: false, titel: "Y",
+        beginn: vonWanduhr(...start.split("-").map(Number), 18, 0).toISOString(),
+        ende: vonWanduhr(...start.split("-").map(Number), 19, 0).toISOString() }],
+    };
+    const kurz = (liste) => liste.map((v) =>
+      [v.schluessel, v.beginn.toISOString(), v.ende.toISOString(), v.termin.titel].join("|"));
+    const x = JSON.stringify(kurz(vorkommen(termin, von, bis)));
+    const y = JSON.stringify(kurz(versand.vorkommen(termin, von, bis)));
+    if (x !== y) { abweichung = `vorkommen: ${regel} @ ${start} [${von}..${bis}]`; break; }
+  }
+  if (abweichung) break;
+}
+pruefe("App und Versand liefern identische Vorkommen", abweichung, null);
+
 console.log(fehler === 0 ? "\nAlle Prüfungen bestanden.\n" : `\n${fehler} Prüfung(en) fehlgeschlagen.\n`);
 process.exit(fehler === 0 ? 0 : 1);
 

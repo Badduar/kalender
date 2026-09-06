@@ -152,6 +152,7 @@ function baueFelder(f) {
     ende: f.ende.toISOString(),
     ganztags: Boolean(f.ganztags),
     kategorie_id: f.kategorie_id || null,
+    erinnerung_minuten: f.erinnerung_minuten ?? null,
     serie_regel: f.serie_regel || null,
     serie_ende: null,
   };

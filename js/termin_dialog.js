@@ -15,7 +15,7 @@ import {
   fuerEingabe, ausEingabe, tagesBeginn, tagPlus, schluesselVon,
   tageDazwischen, teile, wochentag, WOCHENTAGE_KURZ,
 } from "./zeit.js";
-import { FARBPALETTE } from "./konfig.js";
+import { FARBPALETTE, ERINNERUNG_STUFEN, ERINNERUNG_STANDARD } from "./konfig.js";
 
 export function dialogAufsetzen(kontext) {
   const dialog = document.getElementById("termin-dialog");
@@ -63,6 +63,26 @@ export function dialogAufsetzen(kontext) {
   function zeigeFehler(text) {
     fehler.textContent = text ?? "";
     fehler.hidden = !text;
+  }
+
+  // Erinnerungs-Auswahl: 15-Minuten-Schritte bis drei Stunden.
+  function erinnerungFuellen(minuten) {
+    const wahl = form.elements.erinnerung;
+    wahl.replaceChildren();
+    wahl.append(new Option("Keine Erinnerung", ""));
+    for (const m of ERINNERUNG_STUFEN) {
+      const text = m < 60
+        ? `${m} Minuten vorher`
+        : m === 60
+          ? "1 Stunde vorher"
+          : m % 60 === 0
+            ? `${m / 60} Stunden vorher`
+            : `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")} Stunden vorher`;
+      wahl.append(new Option(text, String(m)));
+    }
+    wahl.value = minuten == null ? "" : String(minuten);
+    // Falls ein alter Wert nicht mehr in die Auswahl passt.
+    if (wahl.selectedIndex < 0) wahl.value = "";
   }
 
   function kategorienFuellen(ausgewaehlt) {
@@ -171,6 +191,7 @@ export function dialogAufsetzen(kontext) {
     form.elements.ende_art.value = "nie";
     wiederholungUmstellen();
 
+    erinnerungFuellen(ERINNERUNG_STANDARD);
     kategorienFuellen("");
     neueKategorie.hidden = true;
     setzeSchreibschutz(true);
@@ -219,6 +240,7 @@ export function dialogAufsetzen(kontext) {
     }
     wiederholungUmstellen();
 
+    erinnerungFuellen(t.erinnerung_minuten ?? null);
     kategorienFuellen(t.kategorie_id ?? "");
     neueKategorie.hidden = true;
 
@@ -300,12 +322,14 @@ export function dialogAufsetzen(kontext) {
     }
 
     const kategorie = kategorieWahl.value;
+    const erinnerung = form.elements.erinnerung.value;
     return {
       titel,
       ort: form.elements.ort.value,
       beschreibung: form.elements.beschreibung.value,
       beginn, ende, ganztags,
       kategorie_id: kategorie === "neu" || kategorie === "" ? null : kategorie,
+      erinnerung_minuten: erinnerung === "" ? null : Number(erinnerung),
       serie_regel,
     };
   }

@@ -56,6 +56,14 @@
         </p>
 
         <hr>
+        <p class="menue__titel">Erinnerungen</p>
+        <label class="menue__schalter">
+          <input type="checkbox" id="schalter-push">
+          <span>Auf diesem Gerät erinnern</span>
+        </label>
+        <p class="menue__hinweis" id="push-hinweis"></p>
+
+        <hr>
         <p class="menue__titel">Kalenderdateien</p>
         <button type="button" class="knopf knopf--leise" id="export-eigene">Eigene Termine als .ics speichern</button>
         <button type="button" class="knopf knopf--leise" id="export-alle">Alle sichtbaren Termine als .ics speichern</button>
@@ -117,6 +125,12 @@
         <span>Ort</span>
         <input name="ort" maxlength="200" autocomplete="off">
       </label>
+
+      <label class="feld">
+        <span>Erinnerung</span>
+        <select name="erinnerung"></select>
+      </label>
+      <p class="hinweis" id="erinnerung-hinweis" hidden></p>
 
       <label class="feld">
         <span>Kategorie und Farbe</span>

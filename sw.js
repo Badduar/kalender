@@ -6,7 +6,7 @@
 //  der veraltete Termine anzeigt, waere schlimmer als gar keiner.
 // ============================================================
 
-const CACHE = "kalender-v2";
+const CACHE = "kalender-v3";
 
 const GERUEST = [
   "./",
@@ -85,4 +85,51 @@ self.addEventListener("fetch", (e) => {
         return new Response("Offline", { status: 503, statusText: "Offline" });
       }),
   );
+});
+
+// ============================================================
+//  Erinnerungen
+// ============================================================
+
+self.addEventListener("push", (e) => {
+  // Ohne sichtbare Meldung entzieht der Browser die Erlaubnis wieder,
+  // deshalb wird auch bei kaputten Daten etwas angezeigt.
+  let inhalt = { titel: "Termin", text: "", datum: null };
+  try {
+    if (e.data) inhalt = { ...inhalt, ...e.data.json() };
+  } catch {
+    if (e.data) inhalt.text = e.data.text();
+  }
+
+  e.waitUntil(self.registration.showNotification(inhalt.titel, {
+    body: inhalt.text,
+    icon: "./icons/symbol.svg",
+    badge: "./icons/symbol.svg",
+    lang: "de",
+    tag: `termin-${inhalt.datum ?? "unbekannt"}-${inhalt.titel}`,
+    renotify: false,
+    data: { datum: inhalt.datum },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const datum = e.notification.data?.datum;
+  const ziel = new URL(
+    `kalender.html${datum ? `#tag/${datum}` : ""}`,
+    self.location.href,
+  ).href;
+
+  // Ein schon offenes Fenster wiederverwenden, statt ein zweites zu oeffnen.
+  e.waitUntil((async () => {
+    const fenster = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const f of fenster) {
+      if (f.url.startsWith(self.location.origin)) {
+        await f.focus();
+        if ("navigate" in f) await f.navigate(ziel).catch(() => {});
+        return;
+      }
+    }
+    await self.clients.openWindow(ziel);
+  })());
 });

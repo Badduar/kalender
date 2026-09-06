@@ -17,6 +17,10 @@ import { zeichneTag } from "./ansicht_tag.js";
 import { dialogAufsetzen } from "./termin_dialog.js";
 import { exportieren, alsDateiHerunterladen, lesen } from "./ics.js";
 import { zeigeFeiertage, zeigeFerien } from "./feiertage.js";
+import {
+  pushLage, istAngemeldet,
+  anmelden as pushAnmelden, abmelden as pushAbmelden,
+} from "./push.js";
 
 const ANSICHTEN = ["monat", "woche", "tag"];
 
@@ -327,6 +331,42 @@ async function starten() {
     } finally {
       schalterFreiGebucht.disabled = false;
     }
+  });
+
+  // Erinnerungen auf diesem Geraet an- und abmelden.
+  const schalterPush = document.getElementById("schalter-push");
+  const pushHinweis = document.getElementById("push-hinweis");
+
+  async function pushAnzeigeAuffrischen() {
+    const lage = pushLage();
+    if (!lage.moeglich) {
+      schalterPush.checked = false;
+      schalterPush.disabled = true;
+      pushHinweis.textContent = lage.grund;
+      return;
+    }
+    schalterPush.disabled = false;
+    schalterPush.checked = await istAngemeldet();
+    pushHinweis.textContent = schalterPush.checked
+      ? "Dieses Gerät bekommt Erinnerungen zu deinen Terminen."
+      : "Erinnerungen kommen nur auf Geräten an, die hier angemeldet sind.";
+  }
+  await pushAnzeigeAuffrischen();
+
+  schalterPush.addEventListener("change", async () => {
+    const an = schalterPush.checked;
+    schalterPush.disabled = true;
+    pushHinweis.textContent = an ? "Wird angemeldet …" : "Wird abgemeldet …";
+    try {
+      if (an) await pushAnmelden(kontext.eigenesProfil.id);
+      else await pushAbmelden();
+    } catch (ex) {
+      pushHinweis.textContent = ex.message ?? String(ex);
+      schalterPush.checked = !an;
+      schalterPush.disabled = false;
+      return;
+    }
+    await pushAnzeigeAuffrischen();
   });
 
   // App aktualisieren: Zwischenspeicher leeren und frisch laden.

@@ -8,7 +8,17 @@
 export const SUPABASE_URL = "https://caflqjhsapbqvmuvffir.supabase.co";
 export const SUPABASE_KEY = "sb_publishable_k4SvIx3K3j0tBzgi8bNAvQ_smBZvw9o";
 
+// Oeffentlicher Teil des VAPID-Schluesselpaars fuer Web Push.
+// Gehoert wie der Schluessel oben in den Quelltext; der private Teil
+// liegt im Supabase-Vault und verlaesst den Server nie.
+export const VAPID_OEFFENTLICH =
+  "BKdZrQpYlVExUd_y_bofoR78ke9Pyld4EmaSgQZVLysyvLDvqwFMpIzQYbEsM0hRlkGyBDRxudiQTLJVZoG2acc";
+
 export const ZEITZONE = "Europe/Berlin";
+
+// Auswahl der Erinnerungszeiten: 15-Minuten-Schritte bis drei Stunden.
+export const ERINNERUNG_STUFEN = Array.from({ length: 12 }, (_, i) => (i + 1) * 15);
+export const ERINNERUNG_STANDARD = 15;
 export const STANDARD_FARBE = "#4a90d9";
 
 // Auswahl fuer Profil- und Kategoriefarben.
