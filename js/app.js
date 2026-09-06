@@ -183,6 +183,38 @@ async function importKlick(datei) {
 //  Start
 // ------------------------------------------------------------
 
+// Konto vorhanden, aber nicht ueber den Einladungscode entstanden.
+function zeigeNichtFreigeschaltet() {
+  document.querySelector(".kopf")?.setAttribute("hidden", "");
+  inhalt.replaceChildren();
+
+  const kasten = document.createElement("div");
+  kasten.className = "lade-hinweis";
+  kasten.append(
+    Object.assign(document.createElement("p"), {
+      textContent: "Dieses Profil ist nicht freigeschaltet.",
+      style: "font-weight:600",
+    }),
+    Object.assign(document.createElement("p"), {
+      textContent:
+        "Profile für diesen Kalender werden nur mit einem Einladungscode "
+        + "angelegt. Wenn du einen Code hast, melde dich ab und lege das "
+        + "Profil über „Neues Profil“ an.",
+    }),
+  );
+
+  const abmeldenKnopf = Object.assign(document.createElement("button"), {
+    className: "knopf", textContent: "Abmelden",
+  });
+  abmeldenKnopf.addEventListener("click", async () => {
+    await abmelden();
+    location.replace("index.html");
+  });
+
+  kasten.append(abmeldenKnopf);
+  inhalt.append(kasten);
+}
+
 function zeigeStartfehler(ex) {
   const meldung = ex?.message ?? String(ex);
   inhalt.replaceChildren();
@@ -235,6 +267,14 @@ async function starten() {
   const [profil, profile, kategorien] = await mitEinemZweitversuch(() => Promise.all([
     eigenesProfil(), profileLaden(), kategorienLaden(),
   ]));
+
+  // Ein Profil zaehlt erst, wenn es ueber den Einladungscode entstanden
+  // ist. Alles andere kann sich anmelden, sieht aber nichts - ohne diese
+  // Meldung staende man vor einem leeren Kalender und wuesste nicht warum.
+  if (profil && profil.freigeschaltet === false) {
+    zeigeNichtFreigeschaltet();
+    return;
+  }
 
   kontext.eigenesProfil = profil ?? { id: null, name: "Ich", farbe: "#4a90d9" };
   kontext.profile = new Map(profile.map((p) => [p.id, p]));

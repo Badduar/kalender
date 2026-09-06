@@ -8,9 +8,11 @@
 //  weil sie von noch nicht angemeldeten Personen aufgerufen wird.
 //  Die Zugangskontrolle macht der Einladungscode.
 //
-//  Wichtig: In den Auth-Einstellungen des Projekts muss die offene
-//  Registrierung abgeschaltet sein, sonst laesst sich diese Funktion
-//  umgehen.
+//  Nach dem Anlegen wird das Profil freigeschaltet. Genau daran
+//  haengt der Zugang: ein Konto, das an dieser Funktion vorbei
+//  entstanden ist, bleibt ohne Freischaltung und sieht nichts.
+//  Die Einstellung "offene Registrierung" im Dashboard ist damit
+//  nur noch die zweite Verteidigungslinie, nicht die einzige.
 // ============================================================
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -141,6 +143,26 @@ Deno.serve(async (req: Request) => {
     console.error("createUser:", kontoFehler?.message);
     return antwort(
       { fehler: "Das Profil konnte nicht angelegt werden." },
+      500,
+      ursprung,
+    );
+  }
+
+  // Erst die Freischaltung macht das Profil nutzbar. Ohne sie sieht es
+  // nichts und kann nichts anlegen - so bleibt ein Konto, das an dieser
+  // Funktion vorbei entstanden ist, wirkungslos.
+  const { error: freiFehler } = await dienst.rpc("profil_freischalten", {
+    p_profil: konto.user.id,
+  });
+
+  if (freiFehler) {
+    // Ohne Freischaltung waere das Konto eine leere Huelle - lieber
+    // wieder entfernen, damit die E-Mail-Adresse erneut nutzbar ist.
+    console.error("profil_freischalten:", freiFehler.message);
+    await dienst.auth.admin.deleteUser(konto.user.id).catch(() => {});
+    await dienst.rpc("code_zuruecknehmen", { p_code: code });
+    return antwort(
+      { fehler: "Das Profil konnte nicht freigeschaltet werden." },
       500,
       ursprung,
     );
