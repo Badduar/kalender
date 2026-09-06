@@ -150,6 +150,29 @@ Zwei Feinheiten:
 Die Tabelle `einladungscode` hat bewusst **keine** Zugriffsregel und ist damit
 für alle Clients gesperrt; nur die Edge Function kommt heran.
 
+### „Andere sehen nur belegt"
+
+Im Menü lässt sich der eigene Kalender so einstellen, dass andere Profile nur
+noch Uhrzeit und Farbe sehen — nicht Titel, Ort, Notiz oder Kategorie. Die
+Kategorie ist bewusst mit dabei: „Arzt" würde verraten, worum es geht.
+
+Das setzt der **Server** durch, nicht die Oberfläche. Zugriffsregeln wirken
+zeilenweise, nicht spaltenweise — deshalb wurde dem Client das direkte Lesen von
+`termin` und `serien_ausnahme` **entzogen**. Termine kommen ausschließlich über
+die Funktion `termine_im_zeitraum`, die die Felder ausblendet. Ein direkter
+Aufruf von `/rest/v1/termin` endet mit `403 permission denied`.
+
+Zwei Nebenwege mussten mit:
+
+- **Live-Synchronisierung**: Sie hing an der Tabelle `termin` und hätte bei jeder
+  Änderung die ganze Zeile samt Titel verschickt. Jetzt überträgt sie nur einen
+  Zeitstempel aus `aenderung` — „etwas hat sich geändert" — und der Client lädt
+  neu, wobei die Maskierung greift.
+- **ICS-Export**: Er las die Tabelle direkt und hätte verdeckte Titel in die
+  Datei geschrieben. Er nutzt jetzt dieselbe Funktion wie die Anzeige.
+
+Verdeckte Termine erscheinen schraffiert und heißen „Belegt".
+
 ---
 
 ## Aufbau
@@ -188,6 +211,12 @@ supabase/
 | `M` / `W` / `T` | Monat, Woche, Tag |
 | `H` | zu heute |
 | `N` | neuer Termin |
+
+Das Menü hinter dem eigenen Namen (oben rechts) enthält: Anzeige (Feiertage,
+Schulferien), „Andere sehen nur belegt", Import/Export und — unter *App* —
+**App aktualisieren**. Der Knopf wirft Zwischenspeicher und Service Worker weg
+und lädt frisch; er hilft, wenn nach einer Veröffentlichung noch der alte Stand
+angezeigt wird. Die Anmeldung bleibt dabei erhalten.
 
 Ansicht und Datum stehen in der Adresszeile (`#woche/2026-09-04`) — Lesezeichen
 und der Zurück-Knopf funktionieren also.

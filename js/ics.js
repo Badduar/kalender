@@ -7,7 +7,7 @@
 //  die Datei bringt den passenden VTIMEZONE-Block mit.
 // ============================================================
 
-import { db } from "./supabase.js";
+import { alleTermineLaden } from "./daten.js";
 import {
   teile, vonWanduhr, vonWanduhrInZone, zoneBekannt,
   schluesselVon, schluesselTeile, tagPlus, tagesBeginn,
@@ -142,14 +142,10 @@ function eventZeilen(termin, zeilen) {
 // Baut die Datei aus den Terminen, die der Nutzer sehen darf.
 // "nurEigene" schreibt nur die selbst angelegten.
 export async function exportieren({ nurEigene = false, eigeneId = null } = {}) {
-  let abfrage = db.from("termin").select(
-    "id, ersteller_id, titel, beschreibung, ort, beginn, ende, ganztags," +
-    " serie_regel, ausnahmen:serien_ausnahme(original_datum, geloescht, beginn, ende, titel, ort)",
-  );
-  if (nurEigene && eigeneId) abfrage = abfrage.eq("ersteller_id", eigeneId);
-
-  const { data, error } = await abfrage;
-  if (error) throw error;
+  // Ueber dieselbe Funktion wie die Anzeige - sonst landeten die Titel
+  // verdeckter Termine in der Datei, obwohl der Kalender sie verbirgt.
+  let data = await alleTermineLaden();
+  if (nurEigene && eigeneId) data = data.filter((t) => t.ersteller_id === eigeneId);
 
   const zeilen = [
     "BEGIN:VCALENDAR",

@@ -35,6 +35,7 @@
         <span class="punkt"></span><span>…</span>
       </summary>
       <div class="menue__inhalt">
+        <p class="menue__titel">Anzeige</p>
         <label class="menue__schalter">
           <input type="checkbox" id="schalter-feiertage" checked>
           <span>Feiertage anzeigen</span>
@@ -43,11 +44,27 @@
           <input type="checkbox" id="schalter-ferien" checked>
           <span>Schulferien anzeigen</span>
         </label>
+
         <hr>
+        <p class="menue__titel">Mein Kalender</p>
+        <label class="menue__schalter">
+          <input type="checkbox" id="schalter-frei-gebucht">
+          <span>Andere sehen nur „belegt“</span>
+        </label>
+        <p class="menue__hinweis" id="frei-gebucht-hinweis">
+          Andere Profile sehen dann Uhrzeit und Farbe deiner Termine,
+          aber weder Titel noch Ort oder Notiz. Gilt für alle deine Termine.
+        </p>
+
+        <hr>
+        <p class="menue__titel">Kalenderdateien</p>
         <button type="button" class="knopf knopf--leise" id="export-eigene">Eigene Termine als .ics speichern</button>
         <button type="button" class="knopf knopf--leise" id="export-alle">Alle sichtbaren Termine als .ics speichern</button>
         <button type="button" class="knopf knopf--leise" id="import">.ics-Datei einlesen …</button>
+
         <hr>
+        <p class="menue__titel">App</p>
+        <button type="button" class="knopf knopf--leise" id="aktualisieren">App aktualisieren</button>
         <button type="button" class="knopf knopf--leise" id="abmelden">Abmelden</button>
       </div>
     </details>

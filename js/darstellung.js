@@ -23,6 +23,8 @@ export function beschriftung(v, kontext) {
   const t = v.termin;
   const teile = [t.titel];
   teile.push(t.ganztags ? "ganztägig" : `${uhrzeit(v.beginn)}–${uhrzeit(v.ende)}`);
+  // Bei verdeckten Terminen gibt es weder Ort noch Notiz - der Server
+  // liefert sie gar nicht erst mit.
   if (t.ort) teile.push(t.ort);
   const ersteller = kontext.profile.get(t.ersteller_id);
   if (ersteller && !istEigener(t, kontext)) teile.push(`von ${ersteller.name}`);
@@ -37,6 +39,7 @@ export function plaettchen(v, kontext) {
   knopf.className = "termin";
   if (t.ganztags) knopf.classList.add("termin--ganztags");
   if (!istEigener(t, kontext)) knopf.classList.add("termin--fremd");
+  if (t.verdeckt) knopf.classList.add("termin--verdeckt");
   knopf.style.setProperty("--farbe", farbeFuer(t, kontext));
   knopf.title = beschriftung(v, kontext);
 
@@ -65,6 +68,7 @@ export function block(v, kontext) {
   knopf.type = "button";
   knopf.className = "block";
   if (!istEigener(t, kontext)) knopf.classList.add("block--fremd");
+  if (t.verdeckt) knopf.classList.add("block--verdeckt");
   knopf.style.setProperty("--farbe", farbeFuer(t, kontext));
   knopf.title = beschriftung(v, kontext);
 

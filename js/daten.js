@@ -10,11 +10,9 @@ import { db } from "./supabase.js";
 import { vorkommen, serienEnde } from "./serie.js";
 import { tagesBeginn, tagPlus, schluesselVon } from "./zeit.js";
 
-const SPALTEN =
-  "id, ersteller_id, titel, beschreibung, ort, beginn, ende, ganztags," +
-  " kategorie_id, serie_regel, serie_ende," +
-  " sichtbar:termin_sichtbarkeit(profil_id)," +
-  " ausnahmen:serien_ausnahme(id, original_datum, geloescht, beginn, ende, titel, ort, beschreibung)";
+// Text, der anstelle des Titels steht, wenn jemand sein Profil auf
+// "nur Frei/Gebucht" gestellt hat.
+export const VERDECKT_TITEL = "Belegt";
 
 // ------------------------------------------------------------
 //  Stammdaten
@@ -59,34 +57,20 @@ export async function kategorieLoeschen(id) {
 // ------------------------------------------------------------
 //  Termine laden
 // ------------------------------------------------------------
-//  Zwei Abfragen, weil Serien anders eingegrenzt werden muessen:
-//  eine woechentliche Serie von 2024 kann heute noch Vorkommen haben,
-//  ihr "beginn" liegt aber weit vor dem Fenster.
+//  Geladen wird ueber eine Datenbankfunktion, nicht ueber die Tabelle.
+//  Nur so lassen sich einzelne Felder verbergen: Zugriffsregeln wirken
+//  zeilenweise, nicht spaltenweise. Der direkte Lesezugriff auf
+//  "termin" ist dem Client deshalb entzogen.
 
 export async function termineLaden(vonSchluessel, bisSchluessel) {
-  const vonZeit = tagesBeginn(vonSchluessel).toISOString();
-  const bisZeit = tagesBeginn(tagPlus(bisSchluessel, 1)).toISOString();
+  const { data, error } = await db.rpc("termine_im_zeitraum", {
+    p_von: vonSchluessel,
+    p_bis: bisSchluessel,
+  });
+  if (error) throw error;
 
-  const einzeln = db.from("termin").select(SPALTEN)
-    .is("serie_regel", null)
-    .lt("beginn", bisZeit)
-    .gte("ende", vonZeit);
-
-  const serien = db.from("termin").select(SPALTEN)
-    .not("serie_regel", "is", null)
-    .lt("beginn", bisZeit)
-    .or(`serie_ende.is.null,serie_ende.gte.${vonSchluessel}`);
-
-  const [a, b] = await Promise.all([einzeln, serien]);
-  if (a.error) throw a.error;
-  if (b.error) throw b.error;
-
-  const termine = [...(a.data ?? []), ...(b.data ?? [])];
-
-  // Serien in einzelne Vorkommen aufloesen.
   const alle = [];
-  for (const termin of termine) {
-    termin.sichtbarFuer = (termin.sichtbar ?? []).map((s) => s.profil_id);
+  for (const termin of aufbereiten(data)) {
     for (const v of vorkommen(termin, vonSchluessel, bisSchluessel)) alle.push(v);
   }
 
@@ -95,6 +79,25 @@ export async function termineLaden(vonSchluessel, bisSchluessel) {
     return x.beginn - y.beginn;
   });
   return alle;
+}
+
+// Alle Termine ohne Zeitraum - fuer den ICS-Export.
+export async function alleTermineLaden() {
+  const { data, error } = await db.rpc("termine_im_zeitraum", {
+    p_von: null, p_bis: null,
+  });
+  if (error) throw error;
+  return aufbereiten(data);
+}
+
+// Verdeckte Termine kommen ohne Titel zurueck. Der Ersatztext wird
+// hier gesetzt, damit die Anzeige ihn nicht jedes Mal erraten muss.
+function aufbereiten(zeilen) {
+  for (const termin of zeilen ?? []) {
+    termin.sichtbarFuer = termin.sichtbar_fuer ?? [];
+    if (termin.verdeckt) termin.titel = VERDECKT_TITEL;
+  }
+  return zeilen ?? [];
 }
 
 // Vorkommen nach Tagen sortieren. Mehrtaegige Termine tauchen an
@@ -118,15 +121,15 @@ export function nachTagen(vorkommenListe, tagesSchluessel) {
 // ------------------------------------------------------------
 
 export async function terminAnlegen(felder, sichtbarFuer) {
-  const { data, error } = await db
-    .from("termin")
-    .insert(baueFelder(felder))
-    .select("id")
-    .single();
+  // Die Kennung entsteht hier, nicht in der Datenbank: der Client darf
+  // "termin" nicht mehr lesen, also kann er sie auch nicht zurueckbekommen.
+  const id = crypto.randomUUID();
+
+  const { error } = await db.from("termin").insert({ id, ...baueFelder(felder) });
   if (error) throw error;
 
-  await sichtbarkeitSetzen(data.id, sichtbarFuer);
-  return data.id;
+  await sichtbarkeitSetzen(id, sichtbarFuer);
+  return id;
 }
 
 export async function terminAendern(id, felder, sichtbarFuer) {
@@ -215,16 +218,34 @@ export async function vorkommenAendern(terminId, originalDatum, felder) {
 
 // ------------------------------------------------------------
 //  Synchronisierung
-// ------------------------------------------------------------
-//  Meldet jede Aenderung, die den angemeldeten Nutzer betrifft.
-//  Uebertragen wird bewusst nichts Inhaltliches - die App laedt
-//  danach einfach den sichtbaren Zeitraum neu.
+//  Uebertragen wird nur ein Zeitstempel aus der Tabelle "aenderung",
+//  kein Termininhalt. Frueher hing das an "termin" selbst - damit ging
+//  bei jeder Aenderung die ganze Zeile samt Titel an alle Berechtigten,
+//  was die Maskierung verdeckter Termine ausgehebelt haette.
+//
+//  Der Preis: auch Aenderungen, die einen nichts angehen, loesen ein
+//  Nachladen aus. Bei einem Familienkalender faellt das nicht auf.
 
 export function aufAenderungenHoeren(rueckruf) {
   const kanal = db.channel("kalender-aenderungen");
-  for (const tabelle of ["termin", "termin_sichtbarkeit", "serien_ausnahme"]) {
-    kanal.on("postgres_changes", { event: "*", schema: "public", table: tabelle }, rueckruf);
-  }
+  kanal.on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "aenderung" },
+    rueckruf,
+  );
   kanal.subscribe();
   return () => db.removeChannel(kanal);
+}
+
+// ------------------------------------------------------------
+//  Eigenes Profil
+// ------------------------------------------------------------
+
+// Stellt den ganzen eigenen Kalender auf "nur Frei/Gebucht" um.
+export async function nurFreiGebuchtSetzen(eigeneId, an) {
+  const { error } = await db
+    .from("profil")
+    .update({ nur_frei_gebucht: Boolean(an) })
+    .eq("id", eigeneId);
+  if (error) throw error;
 }

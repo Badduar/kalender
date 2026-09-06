@@ -5,6 +5,7 @@
 import { verlangeAnmeldung, abmelden, eigenesProfil } from "./auth.js";
 import {
   profileLaden, kategorienLaden, termineLaden, terminAnlegen, aufAenderungenHoeren,
+  nurFreiGebuchtSetzen,
 } from "./daten.js";
 import {
   heuteSchluessel, schluesselTeile, schluesselAus, tagPlus, monatsRaster,
@@ -307,6 +308,37 @@ async function starten() {
   });
   document.addEventListener("click", (e) => {
     if (menue.open && !menue.contains(e.target)) menue.open = false;
+  });
+
+  // Ganzen Kalender auf "nur belegt" stellen.
+  const schalterFreiGebucht = document.getElementById("schalter-frei-gebucht");
+  schalterFreiGebucht.checked = Boolean(kontext.eigenesProfil.nur_frei_gebucht);
+  schalterFreiGebucht.addEventListener("change", async () => {
+    const an = schalterFreiGebucht.checked;
+    schalterFreiGebucht.disabled = true;
+    try {
+      await nurFreiGebuchtSetzen(kontext.eigenesProfil.id, an);
+      kontext.eigenesProfil.nur_frei_gebucht = an;
+    } catch (ex) {
+      // Zurueckstellen, damit der Haken nicht etwas behauptet,
+      // was auf dem Server nicht steht.
+      schalterFreiGebucht.checked = !an;
+      alert(`Einstellung konnte nicht gespeichert werden: ${ex.message ?? ex}`);
+    } finally {
+      schalterFreiGebucht.disabled = false;
+    }
+  });
+
+  // App aktualisieren: Zwischenspeicher leeren und frisch laden.
+  document.getElementById("aktualisieren").addEventListener("click", async () => {
+    try {
+      const regs = await navigator.serviceWorker?.getRegistrations?.() ?? [];
+      await Promise.all(regs.map((r) => r.unregister()));
+      const namen = await caches?.keys?.() ?? [];
+      await Promise.all(namen.map((n) => caches.delete(n)));
+    } catch { /* dann eben nur neu laden */ }
+    // Anker abschneiden, damit auch die Startseite frisch kommt.
+    location.replace(location.pathname + "?frisch=" + Date.now());
   });
 
   // Feiertage und Schulferien ein- und ausblenden.

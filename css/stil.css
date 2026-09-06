@@ -443,6 +443,19 @@ textarea { resize: vertical; min-height: 4.5rem; }
 .termin--ganztags .termin__zeit { color: inherit; opacity: .8; }
 .termin--fremd { border-left-style: dotted; }
 
+/* Verdeckt: der Zeitraum ist belegt, der Inhalt geht uns nichts an.
+   Schraffur statt Flaeche macht das ohne Worte deutlich. */
+.termin--verdeckt, .block--verdeckt {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0, transparent 4px,
+    color-mix(in srgb, var(--farbe) 22%, transparent) 4px,
+    color-mix(in srgb, var(--farbe) 22%, transparent) 8px
+  );
+}
+.termin--verdeckt .termin__titel,
+.block--verdeckt b { font-style: italic; opacity: .85; }
+
 /* ---------- Wochen- und Tagesansicht ---------- */
 
 .zeitraster {
@@ -648,6 +661,22 @@ dialog::backdrop { background: rgb(0 0 0 / 45%); }
   font-weight: 600;
 }
 .sichtbarkeit label:has(input:disabled) { opacity: .65; cursor: default; }
+
+.menue__titel {
+  margin: .5rem .9rem .2rem;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text-leise);
+}
+
+.menue__hinweis {
+  margin: 0 .9rem .4rem;
+  font-size: .76rem;
+  line-height: 1.4;
+  color: var(--text-leise);
+}
 
 .menue__schalter {
   display: flex;

@@ -228,9 +228,11 @@ export function dialogAufsetzen(kontext) {
       speicherKnopf.hidden = false;
     } else {
       const ersteller = kontext.profile.get(t.ersteller_id);
-      nurLesen.textContent =
-        `Dieser Termin gehört ${ersteller?.name ?? "einem anderen Profil"}. ` +
-        `Du kannst ihn sehen, aber nicht ändern.`;
+      const wem = ersteller?.name ?? "einem anderen Profil";
+      nurLesen.textContent = t.verdeckt
+        ? `${wem} zeigt von den eigenen Terminen nur Zeit und Farbe. `
+          + `Dass dieser Zeitraum belegt ist, siehst du – worum es geht, nicht.`
+        : `Dieser Termin gehört ${wem}. Du kannst ihn sehen, aber nicht ändern.`;
       nurLesen.hidden = false;
       loeschKnopf.hidden = true;
       speicherKnopf.hidden = true;
