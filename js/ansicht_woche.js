@@ -3,7 +3,7 @@
 
 import {
   wochenRaster, heuteSchluessel, schluesselTeile, schluesselVon,
-  minutenImTag, WOCHENTAGE_KURZ, WOCHENTAGE_LANG,
+  minutenImTag, wochentag, WOCHENTAGE_KURZ, WOCHENTAGE_LANG,
 } from "./zeit.js";
 import { nachTagen } from "./daten.js";
 import { plaettchen, block, ueberlappungen } from "./darstellung.js";
@@ -28,10 +28,11 @@ export function zeichneZeitraster(ziel, vorkommenListe, tage, kontext) {
 
   for (const schluessel of tage) {
     const { tag } = schluesselTeile(schluessel);
+    const wochentagNummer = wochentag(schluessel);
     const zelle = document.createElement("div");
     zelle.className = "zeitraster__kopftag";
+    if (wochentagNummer >= 5) zelle.classList.add("zeitraster__kopftag--wochenende");
     if (schluessel === heute) zelle.classList.add("zeitraster__kopftag--heute");
-    const wochentagNummer = (new Date(`${schluessel}T00:00:00Z`).getUTCDay() + 6) % 7;
     zelle.title = WOCHENTAGE_LANG[wochentagNummer];
     zelle.append(
       document.createTextNode(WOCHENTAGE_KURZ[wochentagNummer]),
@@ -54,6 +55,8 @@ export function zeichneZeitraster(ziel, vorkommenListe, tage, kontext) {
 
   for (const schluessel of tage) {
     const zelle = document.createElement("div");
+    if (wochentag(schluessel) >= 5) zelle.classList.add("ganztags--wochenende");
+    if (schluessel === heute) zelle.classList.add("ganztags--heute");
     zelle.addEventListener("click", () => kontext.aufTagKlick(schluessel, null));
     for (const v of (proTag.get(schluessel) ?? []).filter((x) => x.termin.ganztags)) {
       zelle.append(plaettchen(v, kontext));
@@ -96,6 +99,7 @@ export function zeichneZeitraster(ziel, vorkommenListe, tage, kontext) {
 function tagesSpalte(schluessel, eintraege, heute, kontext) {
   const spalte = document.createElement("div");
   spalte.className = "zeitraster__spalte";
+  if (wochentag(schluessel) >= 5) spalte.classList.add("zeitraster__spalte--wochenende");
   if (schluessel === heute) spalte.classList.add("zeitraster__spalte--heute");
 
   // Klick auf freie Flaeche legt einen Termin zur angeklickten Uhrzeit an.

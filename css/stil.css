@@ -18,6 +18,7 @@
   --gefahr: #c0392b;
   --erfolg: #1e8e4f;
   --heute: #fff6e0;
+  --wochenende: #e9eef3;
 
   --radius: 10px;
   --radius-klein: 6px;
@@ -39,6 +40,9 @@
     --gefahr: #e5675a;
     --erfolg: #4cc684;
     --heute: #33291263;
+    /* Im Dunklen wird das Wochenende dunkler statt heller - hell waere
+       hier die Betonung, und betont gehoert der Werktag nicht. */
+    --wochenende: #171c22;
     --schatten: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
   }
 }
@@ -318,7 +322,8 @@ textarea { resize: vertical; min-height: 4.5rem; }
   letter-spacing: .04em;
   margin-bottom: .35rem;
 }
-.monat__wochentage span { padding: .2rem .4rem; }
+.monat__wochentage span { padding: .2rem .4rem; border-radius: 4px; }
+.monat__wochentage .ist-wochenende { background: var(--wochenende); }
 
 .monat__raster {
   flex: 1 1 auto;
@@ -332,7 +337,11 @@ textarea { resize: vertical; min-height: 4.5rem; }
 }
 
 .tag {
-  background: var(--flaeche);
+  /* Der Hintergrund laeuft ueber eine Variable, damit das Ueberfahren
+     mit der Maus ihn abdunkelt statt ersetzt - sonst verloere eine
+     Wochenend- oder Heute-Zelle beim Zeigen ihre Kennzeichnung. */
+  --zellgrund: var(--flaeche);
+  background: var(--zellgrund);
   min-width: 0;
   min-height: 6.5rem;
   padding: .3rem;
@@ -341,10 +350,14 @@ textarea { resize: vertical; min-height: 4.5rem; }
   gap: .15rem;
   cursor: pointer;
 }
-.tag:hover { background: var(--flaeche-leise); }
-.tag--fremd { background: var(--grund); }
+
+/* Reihenfolge = Vorrang: Wochenende, dann Nachbarmonat, dann heute. */
+.tag--wochenende { --zellgrund: var(--wochenende); }
+.tag--fremd { --zellgrund: var(--grund); }
 .tag--fremd .tag__zahl { color: var(--text-leise); }
-.tag--heute { background: var(--heute); }
+.tag--heute { --zellgrund: var(--heute); }
+
+.tag:hover { background: color-mix(in srgb, var(--text) 7%, var(--zellgrund)); }
 
 .tag__zahl {
   font-size: .82rem;
@@ -430,6 +443,7 @@ textarea { resize: vertical; min-height: 4.5rem; }
   cursor: pointer;
 }
 .zeitraster__kopftag b { display: block; font-size: 1.15rem; color: var(--text); }
+.zeitraster__kopftag--wochenende { background: var(--wochenende); }
 .zeitraster__kopftag--heute { background: var(--akzent-flaeche); }
 .zeitraster__kopftag--heute b { color: var(--akzent); }
 
@@ -449,6 +463,8 @@ textarea { resize: vertical; min-height: 4.5rem; }
   flex-direction: column;
   gap: .15rem;
 }
+.zeitraster__ganztags > .ganztags--wochenende { background: var(--wochenende); }
+.zeitraster__ganztags > .ganztags--heute { background: var(--heute); }
 
 .zeitraster__koerper {
   position: relative;
@@ -485,6 +501,9 @@ textarea { resize: vertical; min-height: 4.5rem; }
   );
   cursor: pointer;
 }
+/* Nur background-color setzen - das Stundenlinien-Bild bleibt erhalten.
+   Reihenfolge = Vorrang: heute schlaegt Wochenende. */
+.zeitraster__spalte--wochenende { background-color: var(--wochenende); }
 .zeitraster__spalte--heute { background-color: var(--heute); }
 
 .zeitraster__jetzt {

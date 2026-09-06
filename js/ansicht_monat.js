@@ -1,7 +1,10 @@
 // Monatsansicht: sechs Wochen am Stueck, damit die Hoehe beim
 // Blaettern nicht springt.
 
-import { monatsRaster, heuteSchluessel, schluesselTeile, WOCHENTAGE_KURZ, WOCHENTAGE_LANG } from "./zeit.js";
+import {
+  monatsRaster, heuteSchluessel, schluesselTeile, wochentag,
+  WOCHENTAGE_KURZ, WOCHENTAGE_LANG,
+} from "./zeit.js";
 import { nachTagen } from "./daten.js";
 import { plaettchen } from "./darstellung.js";
 
@@ -23,6 +26,7 @@ export function zeichneMonat(ziel, vorkommenListe, ankerSchluessel, kontext) {
     const feld = document.createElement("span");
     feld.textContent = WOCHENTAGE_KURZ[i];
     feld.title = WOCHENTAGE_LANG[i];
+    if (i >= 5) feld.classList.add("ist-wochenende");
     kopf.append(feld);
   }
 
@@ -33,6 +37,9 @@ export function zeichneMonat(ziel, vorkommenListe, ankerSchluessel, kontext) {
     const { monat, tag } = schluesselTeile(schluessel);
     const zelle = document.createElement("div");
     zelle.className = "tag";
+    // Reihenfolge egal - welcher Hintergrund gewinnt, regelt das
+    // Stylesheet ueber die Quelltextreihenfolge (heute schlaegt alles).
+    if (wochentag(schluessel) >= 5) zelle.classList.add("tag--wochenende");
     if (monat !== angezeigterMonat) zelle.classList.add("tag--fremd");
     if (schluessel === heute) zelle.classList.add("tag--heute");
     zelle.addEventListener("click", () => kontext.aufTagKlick(schluessel));
