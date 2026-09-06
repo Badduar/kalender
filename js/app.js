@@ -71,6 +71,34 @@ function setzeZustand(ansicht, anker) {
 }
 
 // ------------------------------------------------------------
+//  Tageswechsel
+// ------------------------------------------------------------
+//  Der Anker wird beim Laden einmal gesetzt und bleibt danach stehen.
+//  Laeuft die App ueber Mitternacht durch, zeigt die Monatsansicht
+//  weiterhin den richtigen Tag markiert - sie rechnet "heute" bei jedem
+//  Zeichnen neu. Woche, Tag und Uebersicht haengen dagegen am Anker und
+//  wuerden auf gestern stehenbleiben.
+//
+//  Deshalb wird der Tageswechsel beobachtet. Stand der Anker auf dem
+//  alten "heute", wandert er mit. Hat der Nutzer bewusst woanders
+//  hingeblaettert, bleibt das unangetastet.
+
+let bekannterTag = heuteSchluessel();
+
+function tageswechselPruefen() {
+  const jetzt = heuteSchluessel();
+  if (jetzt === bekannterTag) return false;
+
+  const standAufHeute = zustand.anker === bekannterTag;
+  bekannterTag = jetzt;
+  if (standAufHeute) zustand.anker = jetzt;
+
+  inAdresse();
+  neuZeichnen();
+  return true;
+}
+
+// ------------------------------------------------------------
 //  Zeitraum der aktuellen Ansicht
 // ------------------------------------------------------------
 
@@ -451,8 +479,14 @@ async function starten() {
   // Falls die Verbindung zwischendurch geschlafen hat: beim Zurueckkommen
   // sicherheitshalber neu laden.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") neuZeichnen();
+    if (document.visibilityState !== "visible") return;
+    if (!tageswechselPruefen()) neuZeichnen();
   });
+  window.addEventListener("focus", tageswechselPruefen);
+
+  // Bleibt die App ueber Mitternacht offen, waere das Datum sonst
+  // eingefroren. Einmal je Minute reicht - genauer muss es nicht sein.
+  setInterval(tageswechselPruefen, 60_000);
 
   ausAdresse();
   inAdresse();
