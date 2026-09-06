@@ -22,7 +22,13 @@ export const ERINNERUNG_STANDARD = 15;
 export const STANDARD_FARBE = "#4a90d9";
 
 // Auswahl fuer Profil- und Kategoriefarben.
+//
+// Alle Werte sind bewusst mitteldunkel: bei ganztaegigen Terminen steht
+// weisse Schrift direkt auf der Farbe. Ein helles Cyan (#00ffff) waere
+// dort unlesbar, deshalb der gedecktere Ton.
 export const FARBPALETTE = [
   "#3b7dd8", "#27ae60", "#c0392b", "#8e44ad",
   "#e67e22", "#16a085", "#d81b60", "#607d8b",
+  "#0097a7",   // Cyan - Farbton 186 Grad, deutlich blaeuer als das
+               // Tuerkis #16a085 daneben (168 Grad)
 ];
