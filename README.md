@@ -97,6 +97,30 @@ Repository.
 
 ---
 
+## Testkonten aufräumen
+
+Beim Entwickeln entstehen Testprofile. Die werden **gezielt** entfernt, nie
+pauschal:
+
+```sql
+-- Nur Testkonten. example.com/.org/.net sind laut RFC 2606 für Tests
+-- reserviert - ein echtes Familienmitglied kann so eine Adresse nicht haben.
+delete from auth.users
+ where email like '%@example.com'
+    or email like '%@example.org'
+    or email like '%@example.net';
+```
+
+> ⛔ **Niemals `delete from auth.users;` ohne Bedingung.** Daran hängt per
+> Kaskade alles: Profile, Termine, Freigaben, Serien-Ausnahmen, angemeldete
+> Geräte. Ein Versehen ist nicht rückgängig zu machen.
+
+Vorher nachsehen, was getroffen würde:
+
+```sql
+select email, created_at from auth.users order by created_at;
+```
+
 ## Lokal ausprobieren
 
 ```bash
