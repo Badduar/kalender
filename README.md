@@ -116,7 +116,7 @@ Entwickeln alte Programmstände serviert.
 node "C:\Users\Daniel\Documents\Claude Arbeitsordner\kalender\pruefungen.mjs"
 ```
 
-82 Prüfungen zu Zeitrechnung, Serienterminen, Feiertagen und Schulferien — ohne Netz und ohne Datenbank.
+83 Prüfungen zu Zeitrechnung, Serienterminen, Feiertagen und Schulferien — ohne Netz und ohne Datenbank.
 Sie decken vor allem die Zeitumstellung ab (der 28.03.2027 hat nur 23 Stunden,
 und ein wöchentlicher 9-Uhr-Termin muss trotzdem um 9 Uhr bleiben). Sinnvoll ist
 ein zweiter Durchlauf mit fremder Zeitzone — das Ergebnis muss gleich sein:
@@ -196,11 +196,14 @@ js/
   ansicht_tag.js    Tagesansicht
   termin_dialog.js  Anlegen und Bearbeiten
   feiertage.js      Feiertage (gerechnet) und Schulferien (Tabelle)
+  push.js           Gerät für Erinnerungen an- und abmelden
   ics.js            Import und Export von .ics-Dateien
   app.js            Zustand, Navigation, Start
 supabase/
   migrationen/      SQL, in dieser Reihenfolge einspielen
-  funktionen/       Edge Function "registrieren"
+  funktionen/
+    registrieren/   Konto anlegen (prüft den Einladungscode)
+    erinnerungen/   verschickt fällige Erinnerungen
 ```
 
 ## Bedienung
@@ -245,6 +248,69 @@ neuen Zeiträume unten in der Tabelle anfügen; die Quelle ist die
 Die eingetragenen Daten stammen aus der amtlichen Ferienordnung der Behörde für
 Schule und Berufsbildung und wurden gegen den Ferienkalender der
 Kultusministerkonferenz abgeglichen.
+
+## Erinnerungen aufs Handy
+
+Je Termin einstellbar: keine Erinnerung oder 15-Minuten-Schritte bis drei
+Stunden vorher, voreingestellt 15 Minuten. Die Meldung geht an den **Ersteller**
+des Termins — auf alle Geräte, die er im Menü unter *Erinnerungen* angemeldet
+hat. Wer den Termin nur sehen darf, bekommt keine.
+
+### Was du je Gerät tun musst
+
+1. Kalender unter https://badduar.github.io/kalender/ öffnen
+2. Menü → *Erinnerungen* → **Auf diesem Gerät erinnern** anhaken
+3. Die Nachfrage des Browsers erlauben
+
+> ⚠️ **iPad und iPhone**: Das klappt **nur, wenn der Kalender vorher über
+> „Teilen → Zum Home-Bildschirm" installiert wurde.** Aus einem Safari-Tab
+> heraus lässt Apple keine Erinnerungen zu — das ist deren Vorgabe, kein Fehler
+> der App. Die App sagt es dir auch, wenn es daran scheitert.
+>
+> Auf Android funktioniert es auch im normalen Browser-Tab.
+
+Beim lokalen Testen sind Erinnerungen bewusst abgeschaltet, weil dort der
+Service Worker absichtlich entfernt wird.
+
+### Wie es innen funktioniert
+
+`pg_cron` ruft jede Minute die Edge Function `erinnerungen` auf (über `pg_net`,
+abgesichert mit einem Zugangswort aus dem Vault). Die Funktion rechnet aus,
+welche Vorkommen jetzt fällig sind, merkt sie in `erinnerung_gesendet` vor
+— **vor** dem Senden, damit zwei gleichzeitige Durchgänge nicht beide
+schicken — und verschickt sie. Abos, die der Push-Dienst mit 404/410 ablehnt,
+werden automatisch entfernt.
+
+Der private VAPID-Schlüssel und das Zugangswort liegen im Supabase-Vault, nicht
+im Quelltext. Nur der öffentliche Schlüssel steht in `js/konfig.js`.
+
+**Warum liegen `zeit.js` und `serie.js` doppelt herum?** Der Edge-Runtime lässt
+keine Importe von fremden Adressen zu (statisch wie dynamisch, beides geprüft),
+deshalb bekommt die Funktion Kopien unter `supabase/funktionen/erinnerungen/`.
+Damit sie nicht auseinanderlaufen, vergleicht `pruefungen.mjs` beide Fassungen
+über 40 Regel- und Zeitraum-Kombinationen auf identische Vorkommen. Änderst du
+`js/serie.js` oder `js/zeit.js`, musst du die Kopie nachziehen **und die Edge
+Function neu veröffentlichen** — sonst erinnert der Server zu anderen Zeiten,
+als der Kalender anzeigt.
+
+### Wenn Erinnerungen ausbleiben
+
+- **Projekt pausiert?** Supabase legt Gratis-Projekte nach 7 Tagen ohne Zugriff
+  schlafen; dann läuft auch der Zeitplan nicht mehr. Bei täglicher Nutzung
+  passiert das nicht.
+- **Läuft der Zeitplan?**
+  ```sql
+  select * from cron.job;
+  select start_time, status from cron.job_run_details order by start_time desc limit 10;
+  ```
+- **Ist das Gerät noch angemeldet?**
+  ```sql
+  select bezeichnung, zuletzt_ok, fehler_zaehler from public.push_geraet;
+  ```
+
+Web Push ist „nach bestem Bemühen": Das Betriebssystem darf Meldungen verzögern,
+besonders im Stromsparmodus. Für Unverzichtbares ist eine Erinnerung aus der
+Kalender-App des Geräts verlässlicher.
 
 ## Serientermine
 
