@@ -7,6 +7,7 @@ import {
 } from "./zeit.js";
 import { nachTagen } from "./daten.js";
 import { plaettchen, block, ueberlappungen } from "./darstellung.js";
+import { feiertagAn, ferienAn, zeigeFeiertage, zeigeFerien } from "./feiertage.js";
 
 const MINUTEN_PRO_TAG = 1440;
 const RASTER_MINUTEN = 15;   // Einrasten beim Klick auf freie Flaeche
@@ -15,6 +16,9 @@ export function zeichneZeitraster(ziel, vorkommenListe, tage, kontext) {
   const proTag = nachTagen(vorkommenListe, tage);
   const heute = heuteSchluessel();
   const spalten = `3.2rem repeat(${tage.length}, minmax(0, 1fr))`;
+  const feiertageSichtbar = zeigeFeiertage();
+  const ferienSichtbar = zeigeFerien();
+  let ferienBeschriftet = false;
 
   ziel.replaceChildren();
   const wurzel = document.createElement("div");
@@ -38,6 +42,31 @@ export function zeichneZeitraster(ziel, vorkommenListe, tage, kontext) {
       document.createTextNode(WOCHENTAGE_KURZ[wochentagNummer]),
       Object.assign(document.createElement("b"), { textContent: String(tag) }),
     );
+
+    const feiertag = feiertageSichtbar && feiertagAn(schluessel);
+    const ferien = ferienSichtbar && ferienAn(schluessel);
+    if (feiertag) zelle.classList.add("zeitraster__kopftag--feiertag");
+    if (ferien) zelle.classList.add("zeitraster__kopftag--ferien");
+
+    // Nur einer der beiden Namen passt in die schmale Spalte; der
+    // Feiertag ist der seltenere und wichtigere Anlass.
+    // Der Ferienname steht nur ueber der ersten betroffenen Spalte -
+    // fuenfmal "Herbstferien" nebeneinander waere alles andere als
+    // dezent. Den Rest tragen der Streifen und der Tooltip.
+    let anlass = feiertag || null;
+    if (!anlass && ferien && !ferienBeschriftet) {
+      anlass = ferien.name;
+      ferienBeschriftet = true;
+    }
+    if (ferien) zelle.title = ferien.name;
+    if (feiertag) zelle.title = feiertag;
+
+    if (anlass) {
+      zelle.append(Object.assign(document.createElement("small"), {
+        className: "zeitraster__anlass", textContent: anlass, title: anlass,
+      }));
+    }
+
     zelle.addEventListener("click", () => kontext.aufTagWechsel(schluessel));
     kopf.append(zelle);
   }
@@ -100,6 +129,10 @@ function tagesSpalte(schluessel, eintraege, heute, kontext) {
   const spalte = document.createElement("div");
   spalte.className = "zeitraster__spalte";
   if (wochentag(schluessel) >= 5) spalte.classList.add("zeitraster__spalte--wochenende");
+  // Ferien bekommen im Stundenraster bewusst KEINE Flaeche - sechs Wochen
+  // eingefaerbte Spalten waeren alles andere als dezent. Der Streifen in
+  // der Kopfzeile reicht. Der Feiertag ist ein einzelner Tag und darf.
+  if (zeigeFeiertage() && feiertagAn(schluessel)) spalte.classList.add("zeitraster__spalte--feiertag");
   if (schluessel === heute) spalte.classList.add("zeitraster__spalte--heute");
 
   // Klick auf freie Flaeche legt einen Termin zur angeklickten Uhrzeit an.

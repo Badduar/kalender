@@ -116,7 +116,7 @@ Entwickeln alte Programmstände serviert.
 node "C:\Users\Daniel\Documents\Claude Arbeitsordner\kalender\pruefungen.mjs"
 ```
 
-41 Prüfungen zu Zeitrechnung und Serienterminen — ohne Netz und ohne Datenbank.
+82 Prüfungen zu Zeitrechnung, Serienterminen, Feiertagen und Schulferien — ohne Netz und ohne Datenbank.
 Sie decken vor allem die Zeitumstellung ab (der 28.03.2027 hat nur 23 Stunden,
 und ein wöchentlicher 9-Uhr-Termin muss trotzdem um 9 Uhr bleiben). Sinnvoll ist
 ein zweiter Durchlauf mit fremder Zeitzone — das Ergebnis muss gleich sein:
@@ -158,7 +158,7 @@ für alle Clients gesperrt; nur die Edge Function kommt heran.
 index.html          Anmelden und Registrieren
 kalender.html       Hauptansicht mit Dialogen
 testserver.py       Testserver für die Entwicklung
-pruefungen.mjs      Prüfungen für Zeit- und Serienlogik
+pruefungen.mjs      Prüfungen für Zeit-, Serien- und Feiertagslogik
 css/stil.css        Gestaltung, hell und dunkel
 js/
   konfig.js         Adresse und öffentlicher Schlüssel
@@ -172,6 +172,7 @@ js/
   ansicht_woche.js  Zeitraster (Woche und Tag)
   ansicht_tag.js    Tagesansicht
   termin_dialog.js  Anlegen und Bearbeiten
+  feiertage.js      Feiertage (gerechnet) und Schulferien (Tabelle)
   ics.js            Import und Export von .ics-Dateien
   app.js            Zustand, Navigation, Start
 supabase/
@@ -190,6 +191,31 @@ supabase/
 
 Ansicht und Datum stehen in der Adresszeile (`#woche/2026-09-04`) — Lesezeichen
 und der Zurück-Knopf funktionieren also.
+
+## Feiertage und Schulferien
+
+Beides ist fest eingebaut und steht **nicht** in der Datenbank — es sind keine
+Termine, die jemand versehentlich verschieben oder löschen könnte. Über das
+Profilmenü lässt sich jedes einzeln ausblenden; die Einstellung merkt sich der
+jeweilige Browser.
+
+- **Feiertage** (die 10 gesetzlichen in Hamburg): farbig hinterlegt, mit Namen.
+  Sie werden **gerechnet** — alle beweglichen hängen am Ostersonntag. Diese
+  Angaben veralten nie. Ostersonntag und Pfingstsonntag fehlen bewusst: sie sind
+  keine gesetzlichen Feiertage, sondern Sonntage.
+- **Schulferien**: dezent als schmaler Streifen, mit Namen nur am ersten Tag.
+  Sechs Wochen Sommerferien flächig einzufärben würde die Ansicht erschlagen.
+
+⚠️ **Ferientermine müssen irgendwann verlängert werden.** Erfasst ist die
+amtliche Ferienordnung bis zum **14.08.2030** (`FERIEN_BIS` in
+[`js/feiertage.js`](js/feiertage.js)). Danach zeigt der Kalender einfach keine
+Ferien mehr an — er wird nicht falsch, nur unvollständig. Zum Verlängern die
+neuen Zeiträume unten in der Tabelle anfügen; die Quelle ist die
+„Ferienordnung Hamburg" auf hamburg.de.
+
+Die eingetragenen Daten stammen aus der amtlichen Ferienordnung der Behörde für
+Schule und Berufsbildung und wurden gegen den Ferienkalender der
+Kultusministerkonferenz abgeglichen.
 
 ## Serientermine
 

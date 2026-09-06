@@ -19,6 +19,10 @@
   --erfolg: #1e8e4f;
   --heute: #fff6e0;
   --wochenende: #e9eef3;
+  --feiertag: #fbe9ea;
+  --feiertag-text: #a03a33;
+  --ferien-strich: #2a9d8f;
+  --ferien-text: #1f7a70;
 
   --radius: 10px;
   --radius-klein: 6px;
@@ -43,6 +47,10 @@
     /* Im Dunklen wird das Wochenende dunkler statt heller - hell waere
        hier die Betonung, und betont gehoert der Werktag nicht. */
     --wochenende: #171c22;
+    --feiertag: #2e1e20;
+    --feiertag-text: #e79a94;
+    --ferien-strich: #3fbfae;
+    --ferien-text: #5fd3c3;
     --schatten: 0 1px 2px rgb(0 0 0 / 40%), 0 8px 24px rgb(0 0 0 / 30%);
   }
 }
@@ -342,6 +350,7 @@ textarea { resize: vertical; min-height: 4.5rem; }
      Wochenend- oder Heute-Zelle beim Zeigen ihre Kennzeichnung. */
   --zellgrund: var(--flaeche);
   background: var(--zellgrund);
+  position: relative;          /* traegt den Ferienstreifen */
   min-width: 0;
   min-height: 6.5rem;
   padding: .3rem;
@@ -351,13 +360,39 @@ textarea { resize: vertical; min-height: 4.5rem; }
   cursor: pointer;
 }
 
-/* Reihenfolge = Vorrang: Wochenende, dann Nachbarmonat, dann heute. */
+/* Reihenfolge = Vorrang: Wochenende, Nachbarmonat, Feiertag, heute.
+   Der Feiertag steht nach dem Nachbarmonat, damit er auch am
+   Monatsrand sichtbar bleibt. */
 .tag--wochenende { --zellgrund: var(--wochenende); }
 .tag--fremd { --zellgrund: var(--grund); }
 .tag--fremd .tag__zahl { color: var(--text-leise); }
+.tag--feiertag { --zellgrund: var(--feiertag); }
 .tag--heute { --zellgrund: var(--heute); }
 
 .tag:hover { background: color-mix(in srgb, var(--text) 7%, var(--zellgrund)); }
+
+/* Ferien: nur ein schmaler Streifen an der Oberkante, keine Flaeche -
+   sechs Wochen Sommerferien wuerden sonst die Ansicht erschlagen. */
+.tag--ferien::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--ferien-strich);
+  pointer-events: none;
+}
+
+.tag__anlass {
+  font-size: .68rem;
+  line-height: 1.25;
+  color: var(--feiertag-text);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.tag__anlass--ferien { color: var(--ferien-text); }
 
 .tag__zahl {
   font-size: .82rem;
@@ -444,8 +479,23 @@ textarea { resize: vertical; min-height: 4.5rem; }
 }
 .zeitraster__kopftag b { display: block; font-size: 1.15rem; color: var(--text); }
 .zeitraster__kopftag--wochenende { background: var(--wochenende); }
+.zeitraster__kopftag--feiertag { background: var(--feiertag); }
+/* Ferien wieder nur als Streifen, hier an der Unterkante der Kopfzelle. */
+.zeitraster__kopftag--ferien { box-shadow: inset 0 -3px 0 var(--ferien-strich); }
 .zeitraster__kopftag--heute { background: var(--akzent-flaeche); }
 .zeitraster__kopftag--heute b { color: var(--akzent); }
+
+.zeitraster__anlass {
+  display: block;
+  font-size: .65rem;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--text-leise);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zeitraster__kopftag--feiertag .zeitraster__anlass { color: var(--feiertag-text); }
 
 .zeitraster__ganztags {
   display: grid;
@@ -504,6 +554,7 @@ textarea { resize: vertical; min-height: 4.5rem; }
 /* Nur background-color setzen - das Stundenlinien-Bild bleibt erhalten.
    Reihenfolge = Vorrang: heute schlaegt Wochenende. */
 .zeitraster__spalte--wochenende { background-color: var(--wochenende); }
+.zeitraster__spalte--feiertag { background-color: var(--feiertag); }
 .zeitraster__spalte--heute { background-color: var(--heute); }
 
 .zeitraster__jetzt {
@@ -597,6 +648,19 @@ dialog::backdrop { background: rgb(0 0 0 / 45%); }
   font-weight: 600;
 }
 .sichtbarkeit label:has(input:disabled) { opacity: .65; cursor: default; }
+
+.menue__schalter {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .5rem .9rem;
+  font-size: .9rem;
+  cursor: pointer;
+  user-select: none;
+  border-radius: var(--radius-klein);
+}
+.menue__schalter:hover { background: var(--flaeche-leise); }
+.menue__schalter input { flex: 0 0 auto; margin: 0; }
 
 .hinweis { font-size: .8rem; color: var(--text-leise); margin: .35rem 0 0; }
 

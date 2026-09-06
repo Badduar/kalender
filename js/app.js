@@ -15,6 +15,7 @@ import { zeichneWoche } from "./ansicht_woche.js";
 import { zeichneTag } from "./ansicht_tag.js";
 import { dialogAufsetzen } from "./termin_dialog.js";
 import { exportieren, alsDateiHerunterladen, lesen } from "./ics.js";
+import { zeigeFeiertage, zeigeFerien } from "./feiertage.js";
 
 const ANSICHTEN = ["monat", "woche", "tag"];
 
@@ -298,10 +299,28 @@ async function starten() {
   });
 
   // Menue: nach jeder Auswahl und bei Klick daneben wieder zuklappen.
+  // Die Schalter sind davon ausgenommen - man will oft beide umlegen.
   const menue = document.querySelector(".menue");
-  menue.querySelector(".menue__inhalt").addEventListener("click", () => { menue.open = false; });
+  menue.querySelector(".menue__inhalt").addEventListener("click", (e) => {
+    if (e.target.closest(".menue__schalter")) return;
+    menue.open = false;
+  });
   document.addEventListener("click", (e) => {
     if (menue.open && !menue.contains(e.target)) menue.open = false;
+  });
+
+  // Feiertage und Schulferien ein- und ausblenden.
+  const schalterFeiertage = document.getElementById("schalter-feiertage");
+  const schalterFerien = document.getElementById("schalter-ferien");
+  schalterFeiertage.checked = zeigeFeiertage();
+  schalterFerien.checked = zeigeFerien();
+  schalterFeiertage.addEventListener("change", async () => {
+    zeigeFeiertage(schalterFeiertage.checked);
+    await neuZeichnen();
+  });
+  schalterFerien.addEventListener("change", async () => {
+    zeigeFerien(schalterFerien.checked);
+    await neuZeichnen();
   });
 
   document.getElementById("export-alle").addEventListener("click", () => exportKlick(false));

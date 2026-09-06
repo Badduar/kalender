@@ -7,6 +7,7 @@ import {
 } from "./zeit.js";
 import { nachTagen } from "./daten.js";
 import { plaettchen } from "./darstellung.js";
+import { feiertagAn, ferienAn, zeigeFeiertage, zeigeFerien } from "./feiertage.js";
 
 const MAX_PLAETTCHEN = 3;
 
@@ -15,6 +16,8 @@ export function zeichneMonat(ziel, vorkommenListe, ankerSchluessel, kontext) {
   const proTag = nachTagen(vorkommenListe, tage);
   const heute = heuteSchluessel();
   const angezeigterMonat = schluesselTeile(ankerSchluessel).monat;
+  const feiertageSichtbar = zeigeFeiertage();
+  const ferienSichtbar = zeigeFerien();
 
   ziel.replaceChildren();
   const wurzel = document.createElement("div");
@@ -48,6 +51,29 @@ export function zeichneMonat(ziel, vorkommenListe, ankerSchluessel, kontext) {
     zahl.className = "tag__zahl";
     zahl.textContent = String(tag);
     zelle.append(zahl);
+
+    // Feiertag: deutlich, weil es ein einzelner Tag ist.
+    const feiertag = feiertageSichtbar && feiertagAn(schluessel);
+    if (feiertag) {
+      zelle.classList.add("tag--feiertag");
+      zelle.append(Object.assign(document.createElement("span"), {
+        className: "tag__anlass", textContent: feiertag, title: feiertag,
+      }));
+    }
+
+    // Ferien: dezent. Ein schmaler Streifen traegt den Zeitraum, der
+    // Name steht nur am ersten Ferientag und am Monatsersten - sonst
+    // stuende bei sechs Wochen Sommerferien 42-mal dasselbe Wort.
+    const ferien = ferienSichtbar && ferienAn(schluessel);
+    if (ferien) {
+      zelle.classList.add("tag--ferien");
+      zelle.title = ferien.name;
+      if (schluessel === ferien.von || tag === 1) {
+        zelle.append(Object.assign(document.createElement("span"), {
+          className: "tag__anlass tag__anlass--ferien", textContent: ferien.name,
+        }));
+      }
+    }
 
     const eintraege = proTag.get(schluessel) ?? [];
     for (const v of eintraege.slice(0, MAX_PLAETTCHEN)) {

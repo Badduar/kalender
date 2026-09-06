@@ -14,6 +14,10 @@ import {
 import {
   serienTage, regelSchreiben, regelLesen, regelText, vorkommen, serienEnde,
 } from "./js/serie.js";
+import {
+  ostersonntag, feiertageImJahr, feiertagAn,
+  ferienAn, SCHULFERIEN, FERIEN_BIS,
+} from "./js/feiertage.js";
 
 let fehler = 0;
 function pruefe(name, ist, soll) {
@@ -151,6 +155,61 @@ pruefe("mehrtaegiger Termin, der ins Fenster hineinragt",
   vorkommen(urlaub, "2026-03-29", "2026-03-31").length, 1);
 pruefe("Termin weit vor dem Fenster",
   vorkommen(urlaub, "2026-06-01", "2026-06-30").length, 0);
+
+console.log("\n--- Ostersonntag ---");
+// Bekannte Osterdaten als Gegenprobe zur Osterformel.
+pruefe("Ostern 2024", ostersonntag(2024), "2024-03-31");
+pruefe("Ostern 2025", ostersonntag(2025), "2025-04-20");
+pruefe("Ostern 2026", ostersonntag(2026), "2026-04-05");
+pruefe("Ostern 2027", ostersonntag(2027), "2027-03-28");
+pruefe("Ostern 2028", ostersonntag(2028), "2028-04-16");
+pruefe("Ostern 2029", ostersonntag(2029), "2029-04-01");
+pruefe("Ostern 2030", ostersonntag(2030), "2030-04-21");
+pruefe("Ostern 2038 (spaeter Termin)", ostersonntag(2038), "2038-04-25");
+pruefe("Ostern 2008 (frueher Termin)", ostersonntag(2008), "2008-03-23");
+
+console.log("\n--- Feiertage Hamburg ---");
+pruefe("Hamburg hat 10 gesetzliche Feiertage", feiertageImJahr(2027).size, 10);
+pruefe("Karfreitag 2027", feiertagAn("2027-03-26"), "Karfreitag");
+pruefe("Ostermontag 2027", feiertagAn("2027-03-29"), "Ostermontag");
+pruefe("Christi Himmelfahrt 2027", feiertagAn("2027-05-06"), "Christi Himmelfahrt");
+pruefe("Pfingstmontag 2027", feiertagAn("2027-05-17"), "Pfingstmontag");
+pruefe("Neujahr", feiertagAn("2027-01-01"), "Neujahr");
+pruefe("Tag der Arbeit", feiertagAn("2027-05-01"), "Tag der Arbeit");
+pruefe("Tag der Deutschen Einheit", feiertagAn("2027-10-03"), "Tag der Deutschen Einheit");
+pruefe("Reformationstag (in HH gesetzlich)", feiertagAn("2027-10-31"), "Reformationstag");
+pruefe("2. Weihnachtstag", feiertagAn("2027-12-26"), "2. Weihnachtstag");
+pruefe("Ostersonntag ist KEIN gesetzlicher Feiertag", feiertagAn("2027-03-28"), null);
+pruefe("Fronleichnam gilt in HH nicht", feiertagAn("2027-05-27"), null);
+pruefe("gewoehnlicher Tag", feiertagAn("2027-06-15"), null);
+// Jahreswechsel: die beweglichen Tage duerfen nicht ins Nachbarjahr rutschen
+pruefe("Karfreitag 2029", feiertagAn("2029-03-30"), "Karfreitag");
+pruefe("Karfreitag 2030", feiertagAn("2030-04-19"), "Karfreitag");
+
+console.log("\n--- Schulferien Hamburg ---");
+pruefe("erster Tag der Herbstferien 2026", ferienAn("2026-10-19")?.name, "Herbstferien");
+pruefe("letzter Tag der Herbstferien 2026", ferienAn("2026-10-30")?.name, "Herbstferien");
+pruefe("Tag davor ist frei von Ferien", ferienAn("2026-10-18"), null);
+pruefe("Tag danach ist frei von Ferien", ferienAn("2026-10-31"), null);
+pruefe("Weihnachtsferien ueber den Jahreswechsel", ferienAn("2027-01-01")?.name, "Weihnachtsferien");
+pruefe("Halbjahrespause ist ein einzelner Tag", ferienAn("2027-01-29")?.name, "Halbjahrespause");
+pruefe("Sommerferien 2028 Beginn", ferienAn("2028-07-03")?.name, "Sommerferien");
+pruefe("Sommerferien 2028 Ende", ferienAn("2028-08-11")?.name, "Sommerferien");
+pruefe("Brückentag 2028", ferienAn("2028-10-30")?.name, "Brückentag");
+pruefe("letzter erfasster Ferientag", ferienAn(FERIEN_BIS)?.name, "Sommerferien");
+pruefe("danach ist die Tabelle zu Ende", ferienAn("2030-08-15"), null);
+
+// Zeitraeume duerfen sich nicht ueberschneiden und muessen aufsteigend sein.
+let ueberschneidung = null;
+for (let i = 1; i < SCHULFERIEN.length; i++) {
+  if (SCHULFERIEN[i].von <= SCHULFERIEN[i - 1].bis) {
+    ueberschneidung = `${SCHULFERIEN[i - 1].name} / ${SCHULFERIEN[i].name}`;
+    break;
+  }
+}
+pruefe("Ferienzeitraeume ueberschneiden sich nicht", ueberschneidung, null);
+pruefe("jeder Zeitraum beginnt vor seinem Ende",
+  SCHULFERIEN.filter((z) => z.von > z.bis).length, 0);
 
 console.log(fehler === 0 ? "\nAlle Prüfungen bestanden.\n" : `\n${fehler} Prüfung(en) fehlgeschlagen.\n`);
 process.exit(fehler === 0 ? 0 : 1);
