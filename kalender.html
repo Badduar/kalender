@@ -77,6 +77,16 @@
         </label>
         <p class="menue__hinweis" id="push-hinweis"></p>
 
+        <label class="menue__schalter">
+          <input type="checkbox" id="schalter-ueberblick">
+          <span>Morgens Überblick über den Tag</span>
+        </label>
+        <label class="menue__zeile" id="ueberblick-zeile" hidden>
+          <span>um</span>
+          <input type="time" id="ueberblick-zeit" step="300" value="07:00">
+        </label>
+        <p class="menue__hinweis" id="ueberblick-hinweis"></p>
+
         <hr>
         <p class="menue__titel">Kalenderdateien</p>
         <button type="button" class="knopf knopf--leise" id="export-eigene">Eigene Termine als .ics speichern</button>

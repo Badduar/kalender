@@ -51,7 +51,7 @@ export async function eigenesProfil() {
 
   const { data, error } = await db
     .from("profil")
-    .select("id, name, farbe, freigeschaltet, nur_frei_gebucht")
+    .select("id, name, farbe, freigeschaltet, nur_frei_gebucht, tagesueberblick_um")
     .eq("id", sitzung.user.id)
     .maybeSingle();
 

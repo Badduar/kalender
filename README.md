@@ -349,6 +349,25 @@ hat. Wer den Termin nur sehen darf, bekommt keine.
 Beim lokalen Testen sind Erinnerungen bewusst abgeschaltet, weil dort der
 Service Worker absichtlich entfernt wird.
 
+### Tagesüberblick am Morgen
+
+Im Menü unter *Erinnerungen* lässt sich **Morgens Überblick über den Tag**
+einschalten und eine Uhrzeit wählen. Dann kommt einmal am Morgen eine Meldung
+mit allem, was an dem Tag ansteht — ganztägige Termine zuerst, danach nach
+Uhrzeit sortiert, höchstens sechs, der Rest als „… und 3 weitere". Ein Feiertag
+oder Ferienbeginn steht als eigene Zeile obendrauf. Ein Tipp auf die Meldung
+öffnet die Übersicht.
+
+- **Gezeigt wird, was du auch in der App siehst** — also auch die Termine der
+  anderen. Was auf „nur belegt" steht, erscheint als „Belegt", nie mit Titel.
+- **An stillen Tagen bleibt es still.** Keine Termine und kein Feiertag heißt
+  keine Meldung.
+- **Die Uhrzeit gilt fürs Konto, nicht fürs Gerät.** Handy und iPad bekommen
+  beide eine.
+- **Wanduhrzeit:** 7:00 bleibt 7:00, auch nach der Zeitumstellung.
+- Wann die Meldung ankommt, entscheidet das Gerät. Android weckt Handys, die
+  nachts unberührt liegen, verzögert auf — als Wecker taugt das nicht.
+
 ### Wie es innen funktioniert
 
 `pg_cron` ruft jede Minute die Edge Function `erinnerungen` auf (über `pg_net`,
@@ -366,14 +385,31 @@ eine Minute später an, käme sie nie, obwohl sie noch fällig wäre.
 Der private VAPID-Schlüssel und das Zugangswort liegen im Supabase-Vault, nicht
 im Quelltext. Nur der öffentliche Schlüssel steht in `js/konfig.js`.
 
-**Warum liegen `zeit.js` und `serie.js` doppelt herum?** Der Edge-Runtime lässt
-keine Importe von fremden Adressen zu (statisch wie dynamisch, beides geprüft),
-deshalb bekommt die Funktion Kopien unter `supabase/funktionen/erinnerungen/`.
-Damit sie nicht auseinanderlaufen, vergleicht `pruefungen.mjs` beide Fassungen
-über 40 Regel- und Zeitraum-Kombinationen auf identische Vorkommen. Änderst du
-`js/serie.js` oder `js/zeit.js`, musst du die Kopie nachziehen **und die Edge
-Function neu veröffentlichen** — sonst erinnert der Server zu anderen Zeiten,
-als der Kalender anzeigt.
+Für den Tagesüberblick musste die Frage „wer darf was sehen?" serverfähig
+werden. Sie hing überall an `auth.uid()` — also daran, wer gerade angemeldet
+ist; der Versandserver ist aber niemand. Migration 019 gibt jeder Prüfung eine
+Fassung mit ausdrücklichem Leser (`…_fuer(p_leser, …)`) und macht die bisherige
+zur dünnen Hülle, die `auth.uid()` einsetzt. Es bleibt **eine** Maskierungs-
+logik. Zwei Fassungen könnten auseinanderlaufen, und dann verriete die
+Morgenmeldung eines Tages genau das, was die App als „Belegt" verbirgt.
+`termine_im_zeitraum_fuer` darf nur `service_role` aufrufen — sonst könnte sich
+ein Angemeldeter einen fremden Leser eintragen und alles mitlesen.
+
+**Warum liegen `zeit.js`, `serie.js` und `feiertage.js` doppelt herum?** Der
+Edge-Runtime lässt keine Importe von fremden Adressen zu (statisch wie
+dynamisch, beides geprüft), deshalb bekommt die Funktion Kopien unter
+`supabase/funktionen/erinnerungen/`. Damit sie nicht auseinanderlaufen,
+vergleicht `pruefungen.mjs` beide Fassungen: Serien über 40 Regel- und
+Zeitraum-Kombinationen auf identische Vorkommen, Feiertage und Ferien Tag für
+Tag von 2024 bis 2031. Änderst du eines dieser Module, musst du die Kopie
+nachziehen **und die Edge Function neu veröffentlichen** — sonst erinnert der
+Server zu anderen Zeiten, als der Kalender anzeigt.
+
+`ueberblick.js` liegt aus einem anderen Grund als eigene Datei neben der
+Funktion: In `index.ts` eingebaut wäre der Textaufbau von Node aus nicht
+erreichbar, und `pruefungen.mjs` könnte ihn nicht prüfen — auch nicht den
+Fall, auf den es ankommt (ein verdeckter Termin darf auch hier nur „Belegt"
+heißen).
 
 ### Wenn Erinnerungen ausbleiben
 

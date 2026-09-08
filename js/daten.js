@@ -334,3 +334,14 @@ export async function nurFreiGebuchtSetzen(eigeneId, an) {
     .eq("id", eigeneId);
   if (error) throw error;
 }
+
+// Uhrzeit des morgendlichen Ueberblicks, "HH:MM" oder null zum Abschalten.
+// Gespeichert wird Wanduhrzeit ohne Zeitzone: 7:00 bleibt 7:00, auch
+// wenn die Uhr umgestellt wird.
+export async function tagesueberblickSetzen(eigeneId, zeit) {
+  const { error } = await db
+    .from("profil")
+    .update({ tagesueberblick_um: zeit })
+    .eq("id", eigeneId);
+  if (error) throw error;
+}

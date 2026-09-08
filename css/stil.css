@@ -711,6 +711,23 @@ dialog::backdrop { background: rgb(0 0 0 / 45%); }
 .menue__schalter:hover { background: var(--flaeche-leise); }
 .menue__schalter input { flex: 0 0 auto; margin: 0; }
 
+/* Eine Zeile im Menue mit Eingabefeld, eingerueckt unter ihrem Schalter. */
+.menue__zeile {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .1rem .7rem .38rem 2rem;
+  font-size: .88rem;
+}
+.menue__zeile input {
+  font: inherit;
+  padding: .2rem .4rem;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius-klein);
+  background: var(--flaeche);
+  color: var(--text);
+}
+
 .hinweis { font-size: .8rem; color: var(--text-leise); margin: .35rem 0 0; }
 
 .feld.ankreuz { display: flex; align-items: center; gap: .5rem; }

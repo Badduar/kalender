@@ -262,6 +262,92 @@ for (const [regel, start] of faelle) {
 }
 pruefe("App und Versand liefern identische Vorkommen", abweichung, null);
 
+// Feiertage und Ferien braucht der Tagesueberblick ebenfalls. Die
+// Ferientabelle ist keine Rechnung, sondern abgeschriebene Behoerden-
+// daten - genau dort waere Auseinanderlaufen am unauffaelligsten.
+// Deshalb Tag fuer Tag ueber den ganzen erfassten Zeitraum vergleichen.
+const versandFeiertage = await import("./supabase/funktionen/erinnerungen/feiertage.js");
+
+let ferienAbweichung = null;
+let ferienTageGeprueft = 0;
+for (let tag = "2024-01-01"; tag <= "2031-12-31"; tag = tagPlus(tag, 1)) {
+  ferienTageGeprueft += 1;
+  if (feiertagAn(tag) !== versandFeiertage.feiertagAn(tag)) {
+    ferienAbweichung = `Feiertag am ${tag}`;
+    break;
+  }
+  if ((ferienAn(tag)?.name ?? null) !== (versandFeiertage.ferienAn(tag)?.name ?? null)) {
+    ferienAbweichung = `Ferien am ${tag}`;
+    break;
+  }
+}
+pruefe("App und Versand kennen dieselben Feiertage und Ferien", ferienAbweichung, null);
+pruefe("dabei wurden alle Tage von 2024 bis 2031 geprüft", ferienTageGeprueft, 2922);
+pruefe("Ferienende ist in beiden Fassungen gleich", versandFeiertage.FERIEN_BIS, FERIEN_BIS);
+
+console.log("\n--- Tagesüberblick am Morgen ---");
+
+const { ueberblickBauen } = await import("./supabase/funktionen/erinnerungen/ueberblick.js");
+
+// Die Zeilen kommen so aus termine_im_zeitraum_fuer: verdeckte Termine
+// ohne Titel, dafuer mit verdeckt = true.
+function zeile(felder) {
+  return {
+    ganztags: false, serie_regel: null, ausnahmen: [], verdeckt: false, ...felder,
+  };
+}
+const std = (tag, stunde, minute = 0) => vonWanduhr(...tag.split("-").map(Number), stunde, minute).toISOString();
+
+const TAG = "2026-09-15";   // ein gewoehnlicher Dienstag, keine Ferien
+pruefe("gewöhnlicher Tag ohne Termine schweigt", ueberblickBauen([], TAG), null);
+
+const einer = ueberblickBauen([
+  zeile({ titel: "Zahnarzt", beginn: std(TAG, 9), ende: std(TAG, 10) }),
+], TAG);
+pruefe("ein Termin: Überschrift", einer.titel, "Heute: 1 Termin");
+pruefe("ein Termin: Text", einer.text, "09:00  Zahnarzt");
+
+const gemischt = ueberblickBauen([
+  zeile({ titel: "Abendessen", beginn: std(TAG, 19), ende: std(TAG, 21) }),
+  zeile({ titel: "Urlaub", ganztags: true, beginn: std(TAG, 0), ende: std("2026-09-16", 0) }),
+  zeile({ titel: null, verdeckt: true, beginn: std(TAG, 11), ende: std(TAG, 12) }),
+], TAG);
+pruefe("drei Termine: Überschrift", gemischt.titel, "Heute: 3 Termine");
+pruefe("ganztägig steht oben, dann nach Uhrzeit",
+  gemischt.text, "ganztägig  Urlaub\n11:00  Belegt\n19:00  Abendessen");
+
+// Der wichtigste Fall: was verborgen ist, bleibt auch hier verborgen.
+pruefe("verdeckter Termin verrät seinen Titel nicht",
+  gemischt.text.includes("Belegt") && !gemischt.text.includes("null"), true);
+
+const viele = ueberblickBauen(
+  Array.from({ length: 9 }, (_, i) =>
+    zeile({ titel: `Termin ${i + 1}`, beginn: std(TAG, 8 + i), ende: std(TAG, 9 + i) })),
+  TAG,
+);
+pruefe("viele Termine: Überschrift zählt alle", viele.titel, "Heute: 9 Termine");
+pruefe("viele Termine: Liste wird gekürzt", viele.text.split("\n").length, 7);
+pruefe("viele Termine: Hinweis auf den Rest", viele.text.endsWith("… und 3 weitere"), true);
+
+// Feiertag und Ferien melden sich auch ohne Termin.
+const feiertag = ueberblickBauen([], "2026-10-03");
+pruefe("Feiertag ohne Termine meldet sich", feiertag.titel, "Heute: keine Termine");
+pruefe("Feiertag steht im Text", feiertag.text, "Tag der Deutschen Einheit");
+pruefe("Ferientag ohne Termine meldet sich",
+  ueberblickBauen([], "2026-10-20").text, "Herbstferien");
+
+// Serien muessen auch hier expandiert werden - sonst fehlt der
+// woechentliche Termin im Ueberblick.
+const serie = ueberblickBauen([
+  zeile({ titel: "Sport", serie_regel: "FREQ=WEEKLY;BYDAY=TU",
+          beginn: std("2026-01-06", 18), ende: std("2026-01-06", 19) }),
+], TAG);
+pruefe("laufende Serie taucht am richtigen Tag auf", serie.text, "18:00  Sport");
+pruefe("und nicht an einem anderen", ueberblickBauen([
+  zeile({ titel: "Sport", serie_regel: "FREQ=WEEKLY;BYDAY=TU",
+          beginn: std("2026-01-06", 18), ende: std("2026-01-06", 19) }),
+], "2026-09-16"), null);
+
 console.log(fehler === 0 ? "\nAlle Prüfungen bestanden.\n" : `\n${fehler} Prüfung(en) fehlgeschlagen.\n`);
 process.exit(fehler === 0 ? 0 : 1);
 

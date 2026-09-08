@@ -6,7 +6,7 @@
 //  der veraltete Termine anzeigt, waere schlimmer als gar keiner.
 // ============================================================
 
-const CACHE = "kalender-v4";
+const CACHE = "kalender-v5";
 
 const GERUEST = [
   "./",
@@ -94,7 +94,7 @@ self.addEventListener("fetch", (e) => {
 self.addEventListener("push", (e) => {
   // Ohne sichtbare Meldung entzieht der Browser die Erlaubnis wieder,
   // deshalb wird auch bei kaputten Daten etwas angezeigt.
-  let inhalt = { titel: "Termin", text: "", datum: null };
+  let inhalt = { titel: "Termin", text: "", datum: null, ansicht: "tag" };
   try {
     if (e.data) inhalt = { ...inhalt, ...e.data.json() };
   } catch {
@@ -106,17 +106,20 @@ self.addEventListener("push", (e) => {
     icon: "./icons/symbol.svg",
     badge: "./icons/symbol.svg",
     lang: "de",
-    tag: `termin-${inhalt.datum ?? "unbekannt"}-${inhalt.titel}`,
+    // Der Tagesueberblick bekommt eine eigene Marke, sonst wuerde er
+    // eine gleichzeitige Terminerinnerung verdraengen.
+    tag: `${inhalt.ansicht}-${inhalt.datum ?? "unbekannt"}-${inhalt.titel}`,
     renotify: false,
-    data: { datum: inhalt.datum },
+    data: { datum: inhalt.datum, ansicht: inhalt.ansicht },
   }));
 });
 
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
   const datum = e.notification.data?.datum;
+  const ansicht = e.notification.data?.ansicht ?? "tag";
   const ziel = new URL(
-    `kalender.html${datum ? `#tag/${datum}` : ""}`,
+    `kalender.html${datum ? `#${ansicht}/${datum}` : ""}`,
     self.location.href,
   ).href;
 

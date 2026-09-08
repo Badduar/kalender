@@ -5,7 +5,7 @@
 import { verlangeAnmeldung, abmelden, eigenesProfil } from "./auth.js";
 import {
   profileLaden, kategorienLaden, kalenderLaden, termineLaden, terminAnlegen,
-  aufAenderungenHoeren, nurFreiGebuchtSetzen,
+  aufAenderungenHoeren, nurFreiGebuchtSetzen, tagesueberblickSetzen,
 } from "./daten.js";
 import {
   heuteSchluessel, schluesselTeile, schluesselAus, tagPlus, monatsRaster,
@@ -509,6 +509,50 @@ async function starten() {
       return;
     }
     await pushAnzeigeAuffrischen();
+  });
+
+  // Morgens ein Ueberblick ueber den Tag.
+  const schalterUeberblick = document.getElementById("schalter-ueberblick");
+  const ueberblickZeile = document.getElementById("ueberblick-zeile");
+  const ueberblickZeit = document.getElementById("ueberblick-zeit");
+  const ueberblickHinweis = document.getElementById("ueberblick-hinweis");
+
+  // Die Datenbank liefert "07:00:00", das Eingabefeld will "07:00".
+  function ueberblickAnzeigen(gespeichert) {
+    schalterUeberblick.checked = Boolean(gespeichert);
+    ueberblickZeile.hidden = !gespeichert;
+    if (gespeichert) ueberblickZeit.value = String(gespeichert).slice(0, 5);
+    ueberblickHinweis.textContent = gespeichert
+      ? `Jeden Morgen um ${String(gespeichert).slice(0, 5)} Uhr kommt eine Meldung mit den Terminen des Tages.`
+      : "Eine Meldung am Morgen mit allem, was an dem Tag ansteht.";
+  }
+  ueberblickAnzeigen(kontext.eigenesProfil.tagesueberblick_um);
+
+  async function ueberblickSpeichern(zeit) {
+    schalterUeberblick.disabled = true;
+    ueberblickZeit.disabled = true;
+    try {
+      await tagesueberblickSetzen(kontext.eigenesProfil.id, zeit);
+      kontext.eigenesProfil.tagesueberblick_um = zeit;
+      ueberblickAnzeigen(zeit);
+    } catch (ex) {
+      // Nicht die alte Anzeige stehen lassen, die etwas behauptet,
+      // was auf dem Server nicht steht.
+      ueberblickAnzeigen(kontext.eigenesProfil.tagesueberblick_um);
+      ueberblickHinweis.textContent = `Konnte nicht gespeichert werden: ${ex.message ?? ex}`;
+    } finally {
+      schalterUeberblick.disabled = false;
+      ueberblickZeit.disabled = false;
+    }
+  }
+
+  schalterUeberblick.addEventListener("change", () => {
+    ueberblickSpeichern(schalterUeberblick.checked ? ueberblickZeit.value : null);
+  });
+  ueberblickZeit.addEventListener("change", () => {
+    if (schalterUeberblick.checked && ueberblickZeit.value) {
+      ueberblickSpeichern(ueberblickZeit.value);
+    }
   });
 
   // App aktualisieren: Zwischenspeicher leeren und frisch laden.
