@@ -22,6 +22,11 @@
 
     <span class="kopf__luecke"></span>
 
+    <label class="kalenderwahl" title="Zwischen deinen Kalendern wechseln">
+      <span class="punkt" id="kalender-punkt"></span>
+      <select id="kalender-wahl" aria-label="Aktiver Kalender"></select>
+    </label>
+
     <div class="ansichtswahl" role="group" aria-label="Ansicht">
       <button type="button" data-ansicht="monat" aria-pressed="true" title="Monat (M)">Monat</button>
       <button type="button" data-ansicht="woche" aria-pressed="false" title="Woche (W)">Woche</button>
@@ -55,6 +60,10 @@
         <p class="menue__hinweis">
           Gilt für alle deine Termine: andere sehen dann nur Uhrzeit und Farbe.
         </p>
+
+        <hr>
+        <p class="menue__titel">Meine Kalender</p>
+        <button type="button" class="knopf knopf--leise" id="kalender-verwalten">Kalender verwalten …</button>
 
         <hr>
         <p class="menue__titel">Suchen</p>
@@ -138,6 +147,11 @@
       <p class="hinweis" id="erinnerung-hinweis" hidden></p>
 
       <label class="feld">
+        <span>Kalender</span>
+        <select name="kalender"></select>
+      </label>
+
+      <label class="feld">
         <span>Kategorie und Farbe</span>
         <select name="kategorie"></select>
       </label>
@@ -219,6 +233,36 @@
 <!-- ============================================================
      Rückfrage bei Serienterminen
      ============================================================ -->
+<dialog id="kalender-dialog">
+  <div class="dialog__kopf">
+    <h2>Meine Kalender</h2>
+    <button type="button" class="knopf knopf--leise knopf--rund" id="kalender-schliessen"
+            title="Schließen" aria-label="Schließen">×</button>
+  </div>
+  <div class="dialog__koerper">
+    <p class="meldung meldung--fehler" id="kalender-fehler" role="alert" hidden></p>
+
+    <div class="kalenderliste" id="kalenderliste"></div>
+
+    <hr>
+    <p class="menue__titel" style="margin-left:0">Neuen Kalender anlegen</p>
+    <label class="feld">
+      <span>Name</span>
+      <input type="text" id="kalender-name" maxlength="40" placeholder="z. B. Dienst">
+    </label>
+    <div class="feld">
+      <span>Farbe</span>
+      <div class="farbwahl" id="kalender-farbe"></div>
+    </div>
+    <button type="button" class="knopf knopf--haupt" id="kalender-neu">Anlegen</button>
+
+    <p class="hinweis">
+      Der aktive Kalender bestimmt, welche deiner Termine angezeigt werden und
+      wo neue landen. Termine anderer Profile bleiben immer sichtbar.
+    </p>
+  </div>
+</dialog>
+
 <dialog id="suche-dialog">
   <div class="dialog__kopf">
     <h2>Termine suchen</h2>

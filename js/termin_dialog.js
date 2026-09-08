@@ -85,6 +85,18 @@ export function dialogAufsetzen(kontext) {
     if (wahl.selectedIndex < 0) wahl.value = "";
   }
 
+  // Nur die eigenen Kalender - fremde Termine sind ohnehin schreibgeschuetzt.
+  function kalenderFuellen(ausgewaehlt) {
+    const wahl = form.elements.kalender;
+    wahl.replaceChildren();
+    for (const k of kontext.kalender.values()) {
+      if (k.besitzer_id !== kontext.eigenesProfil.id) continue;
+      wahl.append(new Option(k.name, k.id));
+    }
+    if (ausgewaehlt) wahl.value = ausgewaehlt;
+    if (wahl.selectedIndex < 0) wahl.selectedIndex = 0;
+  }
+
   function kategorienFuellen(ausgewaehlt) {
     kategorieWahl.replaceChildren();
     kategorieWahl.append(new Option("— ohne, Farbe des Erstellers —", ""));
@@ -192,6 +204,7 @@ export function dialogAufsetzen(kontext) {
     wiederholungUmstellen();
 
     erinnerungFuellen(ERINNERUNG_STANDARD);
+    kalenderFuellen(kontext.aktiverKalender());
     kategorienFuellen("");
     neueKategorie.hidden = true;
     setzeSchreibschutz(true);
@@ -241,6 +254,7 @@ export function dialogAufsetzen(kontext) {
     wiederholungUmstellen();
 
     erinnerungFuellen(t.erinnerung_minuten ?? null);
+    kalenderFuellen(t.kalender_id ?? kontext.aktiverKalender());
     kategorienFuellen(t.kategorie_id ?? "");
     neueKategorie.hidden = true;
 
@@ -329,6 +343,7 @@ export function dialogAufsetzen(kontext) {
       beschreibung: form.elements.beschreibung.value,
       beginn, ende, ganztags,
       kategorie_id: kategorie === "neu" || kategorie === "" ? null : kategorie,
+      kalender_id: form.elements.kalender.value || null,
       erinnerung_minuten: erinnerung === "" ? null : Number(erinnerung),
       serie_regel,
     };

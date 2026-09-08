@@ -4,8 +4,8 @@
 
 import { verlangeAnmeldung, abmelden, eigenesProfil } from "./auth.js";
 import {
-  profileLaden, kategorienLaden, termineLaden, terminAnlegen, aufAenderungenHoeren,
-  nurFreiGebuchtSetzen,
+  profileLaden, kategorienLaden, kalenderLaden, termineLaden, terminAnlegen,
+  aufAenderungenHoeren, nurFreiGebuchtSetzen,
 } from "./daten.js";
 import {
   heuteSchluessel, schluesselTeile, schluesselAus, tagPlus, monatsRaster,
@@ -16,6 +16,7 @@ import { zeichneWoche } from "./ansicht_woche.js";
 import { zeichneTag } from "./ansicht_tag.js";
 import { zeichneUebersicht } from "./ansicht_uebersicht.js";
 import { sucheAufsetzen } from "./suche.js";
+import { verwaltungAufsetzen } from "./kalender_verwalten.js";
 import { dialogAufsetzen } from "./termin_dialog.js";
 import { exportieren, alsDateiHerunterladen, lesen } from "./ics.js";
 import { zeigeFeiertage, zeigeFerien } from "./feiertage.js";
@@ -29,7 +30,13 @@ const ANSICHTEN = ["monat", "woche", "tag", "uebersicht"];
 const zustand = {
   ansicht: "monat",
   anker: heuteSchluessel(),
+  // Aktiver Kalender. Steht bewusst nicht in der Adresszeile: welcher
+  // Kalender offen ist, ist eine Einstellung dieses Geraets und nichts,
+  // was man jemandem als Link schickt.
+  kalenderId: null,
 };
+
+const KALENDER_SPEICHER = "kalender.aktiverKalender";
 
 const kontext = {
   profile: new Map(),
@@ -39,6 +46,10 @@ const kontext = {
   aufTagKlick: (schluessel, minuten) => dialog.neuerTermin(schluessel, minuten),
   aufTagWechsel: (schluessel) => setzeZustand("tag", schluessel),
   aufUebersicht: (schluessel) => setzeZustand("uebersicht", schluessel),
+  kalender: new Map(),
+  aktiverKalender: () => zustand.kalenderId,
+  kalenderWechseln: (id) => kalenderWechseln(id),
+  kalenderNeuLaden: () => kalenderNeuLaden(),
   nachAenderung: () => neuZeichnen(),
 };
 
@@ -99,6 +110,66 @@ function tageswechselPruefen() {
 }
 
 // ------------------------------------------------------------
+//  Kalender
+// ------------------------------------------------------------
+//  Der aktive Kalender bestimmt, welche EIGENEN Termine erscheinen
+//  und wo neue landen. Termine anderer Profile bleiben immer
+//  sichtbar - beim Umschalten auf "Dienst" soll einem nicht der
+//  halbe Familienkalender wegbrechen.
+
+function eigeneKalender() {
+  return [...kontext.kalender.values()]
+    .filter((k) => k.besitzer_id === kontext.eigenesProfil.id);
+}
+
+async function kalenderNeuLaden() {
+  const liste = await kalenderLaden();
+  kontext.kalender = new Map(liste.map((k) => [k.id, k]));
+
+  // Der gemerkte Kalender kann inzwischen entfernt worden sein.
+  const meine = eigeneKalender();
+  if (!meine.some((k) => k.id === zustand.kalenderId)) {
+    zustand.kalenderId = meine[0]?.id ?? null;
+    kalenderMerken();
+  }
+  kalenderwahlFuellen();
+}
+
+function kalenderMerken() {
+  try {
+    if (zustand.kalenderId) localStorage.setItem(KALENDER_SPEICHER, zustand.kalenderId);
+  } catch { /* privates Fenster - dann eben nur fuer diese Sitzung */ }
+}
+
+function kalenderwahlFuellen() {
+  const wahl = document.getElementById("kalender-wahl");
+  const punkt = document.getElementById("kalender-punkt");
+  const meine = eigeneKalender();
+
+  wahl.replaceChildren();
+  for (const k of meine) wahl.append(new Option(k.name, k.id));
+  if (zustand.kalenderId) wahl.value = zustand.kalenderId;
+  if (wahl.selectedIndex < 0 && meine.length) {
+    wahl.selectedIndex = 0;
+    zustand.kalenderId = meine[0].id;
+  }
+
+  const aktiv = kontext.kalender.get(zustand.kalenderId);
+  punkt.style.background = aktiv?.farbe ?? "transparent";
+
+  // Bei nur einem Kalender waere die Auswahl nur Beiwerk.
+  document.querySelector(".kalenderwahl").hidden = meine.length < 2;
+}
+
+function kalenderWechseln(id) {
+  if (!id || id === zustand.kalenderId) return;
+  zustand.kalenderId = id;
+  kalenderMerken();
+  kalenderwahlFuellen();
+  neuZeichnen();
+}
+
+// ------------------------------------------------------------
 //  Zeitraum der aktuellen Ansicht
 // ------------------------------------------------------------
 
@@ -134,6 +205,20 @@ function blaettern(richtung) {
 
 let laufendeAnfrage = 0;
 
+// Eigene Termine nur aus dem aktiven Kalender, fremde immer.
+// Termine ohne Kalender (aus der Zeit vor dieser Funktion) bleiben
+// sichtbar - sie sollen nicht unsichtbar werden, nur weil sie alt sind.
+function nurAktiverKalender(liste) {
+  const eigenesId = kontext.eigenesProfil?.id;
+  if (!zustand.kalenderId || !eigenesId) return liste;
+  return liste.filter((v) => {
+    const t = v.termin;
+    if (t.ersteller_id !== eigenesId) return true;
+    if (!t.kalender_id) return true;
+    return t.kalender_id === zustand.kalenderId;
+  });
+}
+
 async function neuZeichnen() {
   const meine = ++laufendeAnfrage;
   zeitraumFeld.textContent = zeitraumText();
@@ -143,9 +228,11 @@ async function neuZeichnen() {
 
   const tage = sichtbareTage();
   try {
-    const vorkommen = await termineLaden(tage[0], tage.at(-1));
+    const geladen = await termineLaden(tage[0], tage.at(-1));
     // Zwischenzeitlich wurde schon wieder geblaettert - Ergebnis verwerfen.
     if (meine !== laufendeAnfrage) return;
+
+    const vorkommen = nurAktiverKalender(geladen);
 
     if (zustand.ansicht === "monat") zeichneMonat(inhalt, vorkommen, zustand.anker, kontext);
     else if (zustand.ansicht === "woche") zeichneWoche(inhalt, vorkommen, zustand.anker, kontext);
@@ -202,6 +289,7 @@ async function importKlick(datei) {
           ende: termin.ende,
           ganztags: Boolean(termin.ganztags),
           kategorie_id: null,
+          kalender_id: zustand.kalenderId,
           serie_regel: termin.serie_regel ?? null,
           ersteller_id: kontext.eigenesProfil.id,
         }, alleProfile);
@@ -303,8 +391,8 @@ async function mitEinemZweitversuch(arbeit) {
 async function starten() {
   if (!await verlangeAnmeldung()) return;
 
-  const [profil, profile, kategorien] = await mitEinemZweitversuch(() => Promise.all([
-    eigenesProfil(), profileLaden(), kategorienLaden(),
+  const [profil, profile, kategorien, kalender] = await mitEinemZweitversuch(() => Promise.all([
+    eigenesProfil(), profileLaden(), kategorienLaden(), kalenderLaden(),
   ]));
 
   // Ein Profil zaehlt erst, wenn es ueber den Einladungscode entstanden
@@ -318,6 +406,14 @@ async function starten() {
   kontext.eigenesProfil = profil ?? { id: null, name: "Ich", farbe: "#4a90d9" };
   kontext.profile = new Map(profile.map((p) => [p.id, p]));
   kontext.kategorien = new Map(kategorien.map((k) => [k.id, k]));
+  kontext.kalender = new Map(kalender.map((k) => [k.id, k]));
+
+  // Zuletzt benutzter Kalender, sonst der erste eigene.
+  let gemerkt = null;
+  try { gemerkt = localStorage.getItem(KALENDER_SPEICHER); } catch { /* egal */ }
+  const meine = eigeneKalender();
+  zustand.kalenderId = meine.some((k) => k.id === gemerkt) ? gemerkt : (meine[0]?.id ?? null);
+  kalenderwahlFuellen();
 
   const profilKnopf = document.getElementById("profil");
   profilKnopf.querySelector(".punkt").style.background = kontext.eigenesProfil.farbe;
@@ -326,6 +422,12 @@ async function starten() {
   dialog = dialogAufsetzen(kontext);
   const suche = sucheAufsetzen(kontext);
   document.getElementById("suche-oeffnen").addEventListener("click", () => suche.oeffnen());
+
+  const verwaltung = verwaltungAufsetzen(kontext);
+  document.getElementById("kalender-verwalten")
+    .addEventListener("click", () => verwaltung.oeffnen());
+  document.getElementById("kalender-wahl")
+    .addEventListener("change", (e) => kalenderWechseln(e.target.value));
 
   // Navigation
   document.getElementById("zurueck").addEventListener("click", () => blaettern(-1));

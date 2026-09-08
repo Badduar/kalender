@@ -1,7 +1,9 @@
 # Kalender
 
 Gemeinsamer Kalender für mehrere Profile. Bei jedem Termin wird einzeln
-festgelegt, wer ihn sehen darf. Ansichten: Monat, Woche, Tag und Übersicht.
+festgelegt, wer ihn sehen darf. Jede Person kann mehrere eigene Kalender
+führen und zwischen ihnen umschalten. Ansichten: Monat, Woche, Tag und
+Übersicht.
 
 - **Oberfläche:** reines HTML/CSS/JavaScript, kein Build-Schritt
 - **Server:** Supabase (Postgres + Anmeldung + Live-Synchronisierung)
@@ -221,6 +223,7 @@ js/
   ansicht_tag.js    Tagesansicht
   ansicht_uebersicht.js  Tagesliste ohne Raster
   suche.js          Termine suchen
+  kalender_verwalten.js  eigene Kalender anlegen und ändern
   termin_dialog.js  Anlegen und Bearbeiten
   feiertage.js      Feiertage (gerechnet) und Schulferien (Tabelle)
   push.js           Gerät für Erinnerungen an- und abmelden
@@ -267,6 +270,36 @@ angezeigt wird. Die Anmeldung bleibt dabei erhalten.
 
 Ansicht und Datum stehen in der Adresszeile (`#woche/2026-09-04`) — Lesezeichen
 und der Zurück-Knopf funktionieren also.
+
+## Mehrere Kalender je Person
+
+Neben dem ersten Kalender („Privat") lassen sich weitere anlegen — etwa
+„Dienst" — und über den Umschalter in der Kopfzeile wechseln. **Ohne zweite
+Anmeldung**, alles innerhalb desselben Kontos. Verwaltet werden sie im Menü
+unter *Meine Kalender*: anlegen, umbenennen, Farbe ändern, entfernen.
+
+Der aktive Kalender bestimmt zweierlei: **welche deiner Termine angezeigt
+werden** und **wo neue landen**. Termine anderer Profile bleiben in jedem
+Kalender sichtbar — sonst bräche einem beim Umschalten auf „Dienst" der halbe
+Familienkalender weg und man verpasst etwas.
+
+An der Sichtbarkeit ändert das nichts: Wer einen Termin sehen darf, entscheidet
+weiter die Freigabe je Termin. Ein Kalender ist eine Sortierhilfe, keine
+Zugriffssperre.
+
+Zwei Feinheiten:
+
+- **Die Farbe sagt jetzt „welcher Kalender", nicht mehr „welche Person".**
+  Rangfolge: Kategorie schlägt Kalender schlägt Profilfarbe. In Woche, Tag und
+  Übersicht steht der Ersteller ohnehin dabei; nur im Monatsraster geht diese
+  Information verloren. Stimmt die Farben untereinander ab.
+- **Kalendernamen sind Teil der Maskierung.** Wer „andere sehen nur belegt"
+  gesetzt hat, gibt weder die Zuordnung eines Termins noch die Namen seiner
+  Kalender preis — ein Kalender „Therapie" wäre sonst ein Leck an der
+  Maskierung vorbei.
+
+Ein Kalender, in dem noch Termine stehen, lässt sich nicht entfernen; die App
+sagt das auch so. Der letzte Kalender bleibt immer bestehen.
 
 ## Feiertage und Schulferien
 

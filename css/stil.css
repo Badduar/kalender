@@ -926,3 +926,51 @@ dialog::backdrop { background: rgb(0 0 0 / 45%); }
   .treffer { flex-direction: column; gap: .15rem; }
   .treffer__wann { flex-basis: auto; flex-direction: row; gap: .4rem; }
 }
+
+/* ---------- Kalender-Umschalter ---------- */
+
+.kalenderwahl {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .1rem .5rem .1rem .6rem;
+  border: 1px solid var(--rand-stark);
+  border-radius: var(--radius-klein);
+  background: var(--flaeche);
+}
+.kalenderwahl select {
+  border: 0;
+  background: transparent;
+  padding: .35rem .2rem;
+  width: auto;
+  font-weight: 550;
+  cursor: pointer;
+}
+
+/* ---------- Kalender verwalten ---------- */
+
+.kalenderliste {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.kalenderzeile {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+  padding: .5rem;
+  border: 1px solid var(--rand);
+  border-radius: var(--radius-klein);
+  background: var(--flaeche);
+}
+.kalenderzeile__name { flex: 1 1 8rem; min-width: 0; }
+.kalenderzeile .knopf { padding: .35rem .7rem; font-size: .85rem; }
+
+.farbwahl--klein { flex: 1 1 100%; gap: .3rem; }
+.farbwahl--klein label { width: 1.35rem; height: 1.35rem; }
+
+@media (max-width: 640px) {
+  .kalenderwahl { order: 1; }
+}

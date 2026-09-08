@@ -27,6 +27,59 @@ export async function profileLaden() {
   return data ?? [];
 }
 
+// ------------------------------------------------------------
+//  Kalender
+// ------------------------------------------------------------
+//  Jede Person kann mehrere haben und im Betrieb umschalten.
+//  Gelesen werden alle - auch fremde, denn deren Farbe und Name
+//  gehoeren zur Darstellung ihrer Termine.
+
+export async function kalenderLaden() {
+  const { data, error } = await db
+    .from("kalender")
+    .select("id, besitzer_id, name, farbe")
+    .order("erstellt_am");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function kalenderAnlegen(name, farbe, eigeneId) {
+  const { data, error } = await db
+    .from("kalender")
+    .insert({ besitzer_id: eigeneId, name: name.trim(), farbe })
+    .select("id, besitzer_id, name, farbe")
+    .single();
+  if (error) {
+    if (error.code === "23505") throw new Error("So heißt schon einer deiner Kalender.");
+    throw error;
+  }
+  return data;
+}
+
+export async function kalenderAendern(id, name, farbe) {
+  const { error } = await db
+    .from("kalender")
+    .update({ name: name.trim(), farbe })
+    .eq("id", id);
+  if (error) {
+    if (error.code === "23505") throw new Error("So heißt schon einer deiner Kalender.");
+    throw error;
+  }
+}
+
+export async function kalenderLoeschen(id) {
+  const { error } = await db.from("kalender").delete().eq("id", id);
+  if (error) {
+    // 23503 = es haengen noch Termine dran (on delete restrict).
+    if (error.code === "23503") {
+      throw new Error(
+        "In diesem Kalender stehen noch Termine. Verschiebe oder lösche sie zuerst.",
+      );
+    }
+    throw error;
+  }
+}
+
 export async function kategorienLaden() {
   const { data, error } = await db
     .from("kategorie")
@@ -152,6 +205,7 @@ function baueFelder(f) {
     ende: f.ende.toISOString(),
     ganztags: Boolean(f.ganztags),
     kategorie_id: f.kategorie_id || null,
+    kalender_id: f.kalender_id || null,
     erinnerung_minuten: f.erinnerung_minuten ?? null,
     serie_regel: f.serie_regel || null,
     serie_ende: null,

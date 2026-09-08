@@ -3,13 +3,17 @@
 import { uhrzeit } from "./zeit.js";
 import { STANDARD_FARBE } from "./konfig.js";
 
-// Die Kategorie bestimmt die Farbe. Ohne Kategorie faellt der Termin
-// auf die Farbe seines Erstellers zurueck - so sieht man auf einen Blick,
-// von wem er stammt.
+// Rangfolge der Farbquellen: Kategorie schlaegt Kalender schlaegt
+// Profil. Die Kategorie ist die genaueste Aussage ueber den Termin,
+// der Kalender die naechstgroebere, das Profil der Rueckfall.
 export function farbeFuer(termin, kontext) {
   if (termin.kategorie_id) {
     const kategorie = kontext.kategorien.get(termin.kategorie_id);
     if (kategorie) return kategorie.farbe;
+  }
+  if (termin.kalender_id) {
+    const kalender = kontext.kalender.get(termin.kalender_id);
+    if (kalender) return kalender.farbe;
   }
   return kontext.profile.get(termin.ersteller_id)?.farbe ?? STANDARD_FARBE;
 }
