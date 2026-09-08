@@ -1,15 +1,13 @@
 // ============================================================
 //  Edge Function "erinnerungen"
 // ============================================================
-//  Wird vom Zeitplan (pg_cron) alle paar Minuten aufgerufen und
-//  verschickt faellige Erinnerungen als Web Push.
+//  Wird vom Zeitplan (pg_cron) jede Minute aufgerufen und verschickt
+//  faellige Erinnerungen als Web Push.
 //
-//  Die Serienlogik wird NICHT nachgebaut, sondern direkt aus der
-//  veroeffentlichten App geladen. Damit rechnet der Versand exakt so
-//  wie die Anzeige im Browser - eine zweite, abweichende Fassung der
-//  Wiederholungsregeln kann es gar nicht erst geben.
-//  Nebenwirkung: Aendert sich serie.js, folgt der Versand beim
-//  naechsten Kaltstart automatisch mit.
+//  zeit.js und serie.js sind Auszuege aus js/ der App. Der Edge-
+//  Runtime laesst keine Fernimporte zu (weder statisch noch dynamisch,
+//  beides geprueft), deshalb liegen sie hier als Kopie. Damit sie nicht
+//  auseinanderlaufen, vergleicht pruefungen.mjs beide Fassungen.
 //
 //  Ohne JWT-Pruefung, dafuer mit eigenem Zugangswort im Kopf
 //  "x-zeitplan-wort" - der Aufruf kommt aus der Datenbank, nicht
@@ -18,9 +16,8 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import * as webpush from "jsr:@negrel/webpush@0.5.0";
-const APP = "https://badduar.github.io/kalender/js";
-const { vorkommen } = await import(`${APP}/serie.js`);
-const { tagPlus, uhrzeit, heuteSchluessel } = await import(`${APP}/zeit.js`);
+import { vorkommen } from "./serie.js";
+import { tagPlus, uhrzeit, heuteSchluessel } from "./zeit.js";
 
 // Wie weit vor und zurueck nach Vorkommen gesucht wird. Drei Stunden
 // Vorlauf koennen ueber Mitternacht reichen, deshalb je ein Tag Rand.
@@ -45,7 +42,6 @@ Deno.serve(async (req: Request) => {
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 
-  // ---- Zugang pruefen ----
   const { data: wort, error: wortFehler } = await dienst.rpc("geheimnis_lesen", {
     p_name: "zeitplan_wort",
   });
@@ -57,7 +53,6 @@ Deno.serve(async (req: Request) => {
     return antwort({ fehler: "Nicht berechtigt" }, 401);
   }
 
-  // ---- Schluessel laden ----
   const { data: schluesselText, error: schluesselFehler } = await dienst.rpc(
     "geheimnis_lesen",
     { p_name: "vapid_schluessel" },
@@ -73,7 +68,6 @@ Deno.serve(async (req: Request) => {
     vapidKeys,
   });
 
-  // ---- Termine mit Erinnerung holen ----
   const heute = heuteSchluessel();
   const von = tagPlus(heute, -TAGE_ZURUECK);
   const bis = tagPlus(heute, TAGE_VORAUS);
@@ -96,34 +90,39 @@ Deno.serve(async (req: Request) => {
   let geprueft = 0;
   let verschickt = 0;
   let geraeteEntfernt = 0;
+  let ohneGeraet = 0;
 
   for (const termin of termine ?? []) {
     for (const v of vorkommen(termin, von, bis)) {
       geprueft += 1;
 
       const alarm = v.beginn.getTime() - termin.erinnerung_minuten * 60_000;
-      if (alarm > jetzt) continue;                                    // noch zu frueh
-      if (v.beginn.getTime() < jetzt - VERFALL_MINUTEN * 60_000) continue; // zu alt
+      if (alarm > jetzt) continue;
+      if (v.beginn.getTime() < jetzt - VERFALL_MINUTEN * 60_000) continue;
 
-      // Erst vormerken, dann senden: laufen zwei Durchgaenge gleichzeitig,
+      // Erst nachsehen, ob ueberhaupt ein Geraet da ist. Wird zuerst
+      // vorgemerkt, verbraucht eine Erinnerung ohne Empfaenger ihren
+      // Platz - meldet man das Handy kurz darauf an, kaeme sie nicht
+      // mehr, obwohl sie noch faellig waere.
+      const { data: geraete } = await dienst
+        .from("push_geraet")
+        .select("id, endpunkt, p256dh, auth")
+        .eq("profil_id", termin.ersteller_id);
+
+      if (!geraete?.length) { ohneGeraet += 1; continue; }
+
+      // Vormerken, dann senden: laufen zwei Durchgaenge gleichzeitig,
       // gewinnt genau einer. Ohne das gaebe es Doppelmeldungen.
       const { data: vormerkung, error: merkFehler } = await dienst
         .from("erinnerung_gesendet")
         .insert({ termin_id: termin.id, vorkommen: v.schluessel })
         .select("termin_id");
 
-      if (merkFehler) continue;          // 23505 = schon verschickt
+      if (merkFehler) continue;
       if (!vormerkung?.length) continue;
 
-      const { data: geraete } = await dienst
-        .from("push_geraet")
-        .select("id, endpunkt, p256dh, auth")
-        .eq("profil_id", termin.ersteller_id);
-
-      if (!geraete?.length) continue;
-
       const wann = termin.ganztags
-        ? "heute, ganztägig"
+        ? "ganztägig"
         : `um ${uhrzeit(v.beginn)} Uhr`;
       const nachricht = JSON.stringify({
         titel: v.termin.titel ?? "Termin",
@@ -145,7 +144,6 @@ Deno.serve(async (req: Request) => {
             .update({ zuletzt_ok: new Date().toISOString(), fehler_zaehler: 0 })
             .eq("id", geraet.id);
         } catch (ex) {
-          // 404/410 heisst: das Geraet hat das Abo weggeworfen.
           const status = (ex as { response?: { status?: number } })?.response?.status;
           if (status === 404 || status === 410) {
             await dienst.from("push_geraet").delete().eq("id", geraet.id);
@@ -160,11 +158,10 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Alte Vormerkungen wegraeumen, sonst waechst die Tabelle ewig.
   await dienst
     .from("erinnerung_gesendet")
     .delete()
     .lt("gesendet_am", new Date(jetzt - 30 * 86_400_000).toISOString());
 
-  return antwort({ ok: true, geprueft, verschickt, geraeteEntfernt });
+  return antwort({ ok: true, geprueft, verschickt, geraeteEntfernt, ohneGeraet });
 });

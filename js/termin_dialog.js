@@ -9,6 +9,7 @@
 import {
   terminAnlegen, terminAendern, terminLoeschen,
   vorkommenAendern, vorkommenLoeschen, kategorieAnlegen,
+  eigeneGeraeteZaehlen,
 } from "./daten.js";
 import { regelSchreiben, regelLesen } from "./serie.js";
 import {
@@ -30,10 +31,13 @@ export function dialogAufsetzen(kontext) {
   const wiederholung = document.getElementById("wiederholung");
   const kategorieWahl = form.elements.kategorie;
   const neueKategorie = document.getElementById("neue-kategorie");
+  const erinnerungHinweis = document.getElementById("erinnerung-hinweis");
 
   // Merkt sich, was gerade bearbeitet wird.
   let aktuell = null;      // null = neuer Termin
   let schreibbar = true;
+  // null = noch nicht gezaehlt oder nicht ermittelbar; dann keine Warnung.
+  let geraeteAnzahl = null;
 
   // ---------- Aufbau der wiederkehrenden Bedienelemente ----------
 
@@ -83,6 +87,28 @@ export function dialogAufsetzen(kontext) {
     wahl.value = minuten == null ? "" : String(minuten);
     // Falls ein alter Wert nicht mehr in die Auswahl passt.
     if (wahl.selectedIndex < 0) wahl.value = "";
+    erinnerungHinweisPruefen();
+  }
+
+  // Eine eingestellte Erinnerung nuetzt nichts, solange kein Geraet
+  // angemeldet ist - der Server verschickt sie dann ins Leere. Das
+  // still hinzunehmen waere die unfreundlichste Variante: man merkt es
+  // erst, wenn der Termin schon vorbei ist.
+  function erinnerungHinweisPruefen() {
+    const gewaehlt = form.elements.erinnerung.value !== "";
+    erinnerungHinweis.hidden = !(schreibbar && gewaehlt && geraeteAnzahl === 0);
+  }
+
+  // Beim Oeffnen nachzaehlen: hat man das Handy gerade eben angemeldet,
+  // soll die Warnung nicht weiter stehen bleiben. Schlaegt die Abfrage
+  // fehl, wird nichts behauptet.
+  async function geraeteNachzaehlen() {
+    try {
+      geraeteAnzahl = await eigeneGeraeteZaehlen();
+    } catch {
+      geraeteAnzahl = null;
+    }
+    erinnerungHinweisPruefen();
   }
 
   // Nur die eigenen Kalender - fremde Termine sind ohnehin schreibgeschuetzt.
@@ -204,6 +230,7 @@ export function dialogAufsetzen(kontext) {
     wiederholungUmstellen();
 
     erinnerungFuellen(ERINNERUNG_STANDARD);
+    geraeteNachzaehlen();
     kalenderFuellen(kontext.aktiverKalender());
     kategorienFuellen("");
     neueKategorie.hidden = true;
@@ -254,6 +281,7 @@ export function dialogAufsetzen(kontext) {
     wiederholungUmstellen();
 
     erinnerungFuellen(t.erinnerung_minuten ?? null);
+    if (schreibbar) geraeteNachzaehlen();
     kalenderFuellen(t.kalender_id ?? kontext.aktiverKalender());
     kategorienFuellen(t.kategorie_id ?? "");
     neueKategorie.hidden = true;
@@ -474,6 +502,7 @@ export function dialogAufsetzen(kontext) {
   // ---------- Kleinkram ----------
 
   form.elements.ganztags.addEventListener("change", zeitfelderUmstellen);
+  form.elements.erinnerung.addEventListener("change", erinnerungHinweisPruefen);
   form.elements.haeufigkeit.addEventListener("change", wiederholungUmstellen);
   form.elements.ende_art.addEventListener("change", wiederholungUmstellen);
 

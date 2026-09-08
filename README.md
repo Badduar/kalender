@@ -353,10 +353,15 @@ Service Worker absichtlich entfernt wird.
 
 `pg_cron` ruft jede Minute die Edge Function `erinnerungen` auf (über `pg_net`,
 abgesichert mit einem Zugangswort aus dem Vault). Die Funktion rechnet aus,
-welche Vorkommen jetzt fällig sind, merkt sie in `erinnerung_gesendet` vor
-— **vor** dem Senden, damit zwei gleichzeitige Durchgänge nicht beide
+welche Vorkommen jetzt fällig sind, sieht nach, ob für den Ersteller überhaupt
+ein Gerät angemeldet ist, merkt die Erinnerung dann in `erinnerung_gesendet`
+vor — **vor** dem Senden, damit zwei gleichzeitige Durchgänge nicht beide
 schicken — und verschickt sie. Abos, die der Push-Dienst mit 404/410 ablehnt,
 werden automatisch entfernt.
+
+Die Geräteprüfung steht **vor** der Vormerkung, und das mit Absicht: andernfalls
+verbraucht eine Erinnerung ohne Empfänger ihren Platz. Meldet man das Handy
+eine Minute später an, käme sie nie, obwohl sie noch fällig wäre.
 
 Der private VAPID-Schlüssel und das Zugangswort liegen im Supabase-Vault, nicht
 im Quelltext. Nur der öffentliche Schlüssel steht in `js/konfig.js`.
@@ -372,6 +377,16 @@ als der Kalender anzeigt.
 
 ### Wenn Erinnerungen ausbleiben
 
+- **Ist überhaupt ein Gerät angemeldet?** Das ist die mit Abstand häufigste
+  Ursache — der Haken im Menü muss auf **jedem** Gerät einzeln gesetzt werden,
+  auf dem die Meldung ankommen soll. Ist die Tabelle leer, wird nichts
+  verschickt:
+  ```sql
+  select p.name, g.bezeichnung, g.zuletzt_ok from public.push_geraet g
+    join public.profil p on p.id = g.profil_id;
+  ```
+  Im Terminfenster warnt die App inzwischen selbst, wenn eine Erinnerung
+  eingestellt ist, für das Konto aber kein Gerät angemeldet ist.
 - **Projekt pausiert?** Supabase legt Gratis-Projekte nach 7 Tagen ohne Zugriff
   schlafen; dann läuft auch der Zeitplan nicht mehr. Bei täglicher Nutzung
   passiert das nicht.

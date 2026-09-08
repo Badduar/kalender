@@ -6,7 +6,7 @@
 //  der veraltete Termine anzeigt, waere schlimmer als gar keiner.
 // ============================================================
 
-const CACHE = "kalender-v3";
+const CACHE = "kalender-v4";
 
 const GERUEST = [
   "./",

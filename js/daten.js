@@ -313,6 +313,19 @@ export function aufAenderungenHoeren(rueckruf) {
 //  Eigenes Profil
 // ------------------------------------------------------------
 
+// Wie viele Geraete koennen fuer dieses Konto Erinnerungen empfangen?
+// Die Leseregel zeigt nur die eigenen, deshalb genuegt das Zaehlen ohne
+// Bedingung. Gefragt wird nach dem Konto, nicht nach diesem Geraet: wer
+// am Rechner einen Termin eintraegt, bekommt die Meldung trotzdem aufs
+// Handy - eine Warnung waere dann falsch.
+export async function eigeneGeraeteZaehlen() {
+  const { count, error } = await db
+    .from("push_geraet")
+    .select("id", { count: "exact", head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
 // Stellt den ganzen eigenen Kalender auf "nur Frei/Gebucht" um.
 export async function nurFreiGebuchtSetzen(eigeneId, an) {
   const { error } = await db
